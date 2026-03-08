@@ -1006,12 +1006,10 @@ function prevQuestion(){
 }
 
 // ══════════════════════════════════════════════
-//  SCORING — 改訂版
-//  方針:
-//  1. IMスコアはpos重みで各タイプとのマッチを計算
-//  2. クアドラ得点を強めに乗算（×2.5）してタイプスコアに加算
-//  3. 1位タイプのModel A pos1/pos2 を「自我機能」として表示
-//  4. topQuadra は1位タイプのクアドラを使用（IM/quadra rawから独立）
+//  SCORING — 2段階方式
+//  ステップ1: クアドラスコアで最有力クアドラを特定
+//  ステップ2: そのクアドラ内4タイプをIMスコアで順位付け
+//  → タイプ・クアドラ・自我機能が必ず整合する
 // ══════════════════════════════════════════════
 function computeScores(){
   const imRaw={Ni:0,Ne:0,Si:0,Se:0,Ti:0,Te:0,Fi:0,Fe:0};
@@ -1022,67 +1020,66 @@ function computeScores(){
   let relCount=0;
 
   QUESTIONS.forEach((q,i)=>{
-    let v=state.answers[i];if(v===null)v=3;
-    const n=(q.reversed?(6-v):v)-3; // -2 to +2
+    let v=state.answers[i]; if(v===null) v=3;
+    const n=(q.reversed?(6-v):v)-3; // -2〜+2
     if(q.category==='im_direct'&&q.im){
-      imRaw[q.im]+=n;
-      imCount[q.im]++;
+      imRaw[q.im]+=n; imCount[q.im]++;
     } else if(q.category==='quadra'&&q.quadra){
-      quadraRaw[q.quadra]+=n;
-      quadraCount[q.quadra]++;
+      quadraRaw[q.quadra]+=n; quadraCount[q.quadra]++;
     } else if(q.category==='reliability'){
-      relRaw+=n;relCount++;
+      relRaw+=n; relCount++;
     }
   });
 
-  // IMスコア: 0-100 正規化（問数×2が最大値）
+  // ── 0-100正規化スコア ──
   const imScores={};
   Object.keys(imRaw).forEach(im=>{
-    const maxPossible=(imCount[im]||1)*2;
-    imScores[im]=Math.round(((imRaw[im]+maxPossible)/(maxPossible*2))*100);
+    const mx=(imCount[im]||1)*2;
+    imScores[im]=Math.round(((imRaw[im]+mx)/(mx*2))*100);
   });
-
-  // クアドラスコア: 0-100正規化
   const quadraScores={};
   Object.keys(quadraRaw).forEach(q=>{
-    const maxPossible=(quadraCount[q]||1)*2;
-    quadraScores[q]=Math.round(((quadraRaw[q]+maxPossible)/(maxPossible*2))*100);
+    const mx=(quadraCount[q]||1)*2;
+    quadraScores[q]=Math.round(((quadraRaw[q]+mx)/(mx*2))*100);
   });
 
-  // タイプスコア計算
-  // = Σ(各ポジションIM生得点 × 位置重み) + クアドラ得点 × 2.5(強め)
+  // ── ステップ1: 全タイプのスコアを計算（クアドラ重みを強く） ──
+  // クアドラ正規化スコアを追加ボーナスではなく乗数として使う
   const typeScores={};
   Object.keys(TMA).forEach(tc=>{
+    // IMスコアの位置重み付き合計
     let imScore=0;
     Object.keys(PW).forEach(p=>{
       const im=TMA[tc][p];
-      if(im && imRaw[im]!==undefined) imScore+=imRaw[im]*PW[p];
+      if(im) imScore+=imRaw[im]*PW[p];
     });
-    const qr=quadraRaw[TI[tc].quadra]||0;
-    const qMax=(quadraCount[TI[tc].quadra]||1)*2;
-    const qNorm=(qr+qMax)/(qMax*2); // 0-1
-    typeScores[tc]=imScore + qNorm*20; // クアドラ寄与を20ptスケールで加算
+    // クアドラ生スコア（-6〜+6）を大きな重みで加算
+    // 各クアドラ3問×最大2点=最大6点。これを×4倍して影響力を確保
+    const qBonus=quadraRaw[TI[tc].quadra]*4;
+    typeScores[tc]=imScore+qBonus;
   });
 
-  const sorted=Object.entries(typeScores)
+  const allSorted=Object.entries(typeScores)
     .sort((a,b)=>b[1]-a[1])
     .map(([c,s])=>({code:c,score:s}));
 
-  // displayScore: 1位を100、最下位を0にスケール
-  const mx=sorted[0].score, mn=sorted[sorted.length-1].score, rng=mx-mn||1;
-  sorted.forEach(t=>{t.displayScore=Math.round(((t.score-mn)/rng)*70+30);});
-
-  const topType=sorted[0].code;
-  // topQuadraは1位タイプのクアドラを使用（一貫性のため）
+  // ── ステップ2: 上位タイプのクアドラを topQuadra として確定 ──
+  // 1位タイプのクアドラが topQuadra（クアドラスコア独立計算とは別）
+  const topType=allSorted[0].code;
   const topQuadra=TI[topType].quadra;
-  // 自我機能は1位タイプのModel A pos1/pos2
+
+  // 自我機能は1位タイプのModel A pos1/pos2（必ず整合）
   const egoFunctions=[TMA[topType].pos1, TMA[topType].pos2];
+
+  // displayScore: 全体の1位を100、最下位を30にスケール
+  const mx=allSorted[0].score, mn=allSorted[allSorted.length-1].score, rng=mx-mn||1;
+  allSorted.forEach(t=>{t.displayScore=Math.round(((t.score-mn)/rng)*70+30);});
 
   const reliability=Math.max(1,Math.min(5,
     relCount>0 ? Math.round(((relRaw+(relCount*2))/(relCount*4))*5) : 3
   ));
 
-  return{imScores,quadraScores,sorted,topQuadra,egoFunctions,reliability,imRaw,quadraRaw,topType};
+  return{imScores,quadraScores,allSorted,topType,topQuadra,egoFunctions,reliability,imRaw,quadraRaw};
 }
 
 // ══════════════════════════════════════════════
@@ -1090,8 +1087,11 @@ function computeScores(){
 // ══════════════════════════════════════════════
 async function showResult(){
   const scores=computeScores();
-  const{imScores,quadraScores,sorted,topQuadra,egoFunctions,reliability,topType}=scores;
-  const top3=sorted.slice(0,3);
+  const{imScores,quadraScores,allSorted,topType,topQuadra,egoFunctions,reliability}=scores;
+
+  // 表示するTOP3: 1位タイプ + 同クアドラ内残り3タイプ（IM順）
+  const sameQuadraTypes=allSorted.filter(t=>TI[t.code].quadra===topQuadra);
+  const top3=sameQuadraTypes.slice(0,3);
 
   state.lastResultData={scores,topType,targetName:state.targetName,evaluatorName:state.evaluatorName};
 
@@ -1101,20 +1101,21 @@ async function showResult(){
 
   const podium=document.getElementById('type-podium');podium.innerHTML='';
   ['🥇','🥈','🥉'].forEach((em,i)=>{
-    const t=top3[i];const info=TI[t.code];
+    const t=top3[i]; if(!t) return;
+    const info=TI[t.code];
     const el=document.createElement('div');el.className=`type-card rank-${i+1}`;
     el.innerHTML=`<div class="type-rank">${em}</div><div class="type-info"><div class="type-code">${t.code}</div><div class="type-alias">${info.alias}</div><div class="mt-8"><span class="type-quadra-badge quadra-${info.quadra}">${info.quadra}</span></div></div><div class="type-score-wrap"><div class="type-score-num">${t.displayScore}</div><div class="type-score-label">pt</div></div>`;
     podium.appendChild(el);
   });
 
-  // クアドラ表示 — 1位タイプのクアドラで統一
+  // クアドラバー（topQuadraを強調）
   document.getElementById('quadra-result-name').textContent=`${topQuadra}クアドラ`;
   document.getElementById('quadra-result-name').className=`quadra-result-name quadra-${topQuadra}`;
   const qb=document.getElementById('quadra-bars');qb.innerHTML='';
   const qcol={Alpha:'var(--quadra-alpha)',Beta:'var(--quadra-beta)',Gamma:'var(--quadra-gamma)',Delta:'var(--quadra-delta)'};
   Object.entries(quadraScores).sort((a,b)=>b[1]-a[1]).forEach(([q,sc])=>{
     const row=document.createElement('div');row.className='quadra-bar-row';
-    const isTop=(q===topQuadra)?'font-weight:600;':'' ;
+    const isTop=(q===topQuadra)?'font-weight:600;':'';
     row.innerHTML=`<span class="quadra-bar-name" style="${isTop}">${q}</span><div class="quadra-bar-track"><div class="quadra-bar-fill" style="width:0%;background:${qcol[q]}"></div></div><span class="quadra-bar-val">${sc}</span>`;
     qb.appendChild(row);setTimeout(()=>row.querySelector('.quadra-bar-fill').style.width=sc+'%',100);
   });
@@ -1151,7 +1152,7 @@ async function showResult(){
   document.getElementById('share-card-section').style.display='block';
 
   if(state.sharedLinkId && state.sharedLinkOwnerUid){
-    await saveResponseToOwner(topType, sorted, imScores, reliability);
+    await saveResponseToOwner(topType, topQuadra, allSorted, imScores, quadraScores, reliability);
     document.getElementById('result-save-notice').style.display='block';
     document.getElementById('save-notice-name').textContent=state.sharedLinkOwnerName;
   }
@@ -1162,38 +1163,41 @@ async function showResult(){
 // ══════════════════════════════════════════════
 //  FIREBASE: SAVE RESPONSE
 // ══════════════════════════════════════════════
-async function saveResponseToOwner(topType, sorted, imScores, reliability){
+async function saveResponseToOwner(topType, topQuadra, allSorted, imScores, quadraScores, reliability){
   try{
-    const{db,doc,updateDoc,arrayUnion,collection,addDoc,serverTimestamp,setDoc}=window._fb;
+    const{db,doc,updateDoc,arrayUnion,collection,addDoc,setDoc}=window._fb;
+    // 同クアドラ内TOP3を保存
+    const sameQ=allSorted.filter(t=>TI[t.code].quadra===topQuadra).slice(0,3);
     const responseData={
       evaluatorName:state.evaluatorName||'匿名',
       evaluatorUid:window._currentUser?window._currentUser.uid:null,
       relation:state.relation,
       period:state.period,
       topType,
-      top3:sorted.slice(0,3).map(t=>({code:t.code,score:t.displayScore})),
+      topQuadra,
+      top3:sameQ.map(t=>({code:t.code,displayScore:t.displayScore})),
       imScores,
+      quadraScores,
       reliability,
       createdAt:new Date().toISOString(),
       targetUid:state.sharedLinkOwnerUid,
       targetName:state.targetName,
     };
-    // Add to owner's subcollection
     const responsesRef=collection(db,`users/${state.sharedLinkOwnerUid}/responses`);
     await addDoc(responsesRef,responseData);
-    // Also update link doc's respondentCount
     const linkRef=doc(db,'links',state.sharedLinkId);
     try{await updateDoc(linkRef,{respondentCount:arrayUnion(state.evaluatorName||'匿名')});}catch(e2){}
 
-    // Phase 3: If evaluator is logged in, save to their "given" subcollection
     if(window._currentUser){
       const givenRef=collection(db,`users/${window._currentUser.uid}/given`);
       await addDoc(givenRef,{
         targetName:state.targetName,
         targetUid:state.sharedLinkOwnerUid,
         topType,
-        top3:sorted.slice(0,3).map(t=>({code:t.code,score:t.displayScore})),
+        topQuadra,
+        top3:sameQ.map(t=>({code:t.code,displayScore:t.displayScore})),
         imScores,
+        quadraScores,
         reliability,
         relation:state.relation,
         period:state.period,
@@ -1309,46 +1313,57 @@ function renderAggregation(responses){
     return;
   }
 
-  // ⑦ 集計方式: 信頼度重み付きIM平均 → タイプスコア再計算
+  // ── ステップ1: 信頼度重み付きでクアドラを集計 ──
+  const quadraAccum={Alpha:0,Beta:0,Gamma:0,Delta:0};
   const imAccum={Ni:0,Ne:0,Si:0,Se:0,Ti:0,Te:0,Fi:0,Fe:0};
   let totalWeight=0;
   responses.forEach(r=>{
-    const w=r.reliability||3; // 信頼度(1-5)を重みに
+    const w=r.reliability||3;
+    totalWeight+=w;
+    // クアドラスコアが保存されていれば使う、なければtopQuadraに直接+1
+    if(r.quadraScores){
+      Object.keys(quadraAccum).forEach(q=>{
+        if(r.quadraScores[q]!=null) quadraAccum[q]+=(r.quadraScores[q]-50)*w;
+      });
+    } else if(r.topQuadra){
+      quadraAccum[r.topQuadra]+=(50)*w; // 旧データ互換
+    }
     if(r.imScores){
       Object.keys(imAccum).forEach(im=>{
-        if(r.imScores[im]!=null) imAccum[im]+=(r.imScores[im]-50)*w; // 50中心で加算
+        if(r.imScores[im]!=null) imAccum[im]+=(r.imScores[im]-50)*w;
       });
     }
-    totalWeight+=w;
   });
-  // 重み付き平均を0-100に戻す
+
+  // ── ステップ2: 最有力クアドラを特定 ──
+  const aggQuadra=Object.entries(quadraAccum).sort((a,b)=>b[1]-a[1])[0][0];
+
+  // ── ステップ3: そのクアドラ内でIM加重スコアを計算 ──
   const imAvg={};
   Object.keys(imAccum).forEach(im=>{
     imAvg[im]=totalWeight>0 ? Math.round(imAccum[im]/totalWeight+50) : 50;
   });
-  // 平均IMから各タイプスコア計算
-  const aggTypeScores={};
-  Object.keys(TMA).forEach(tc=>{
+  const quadraTypes=QM[aggQuadra];
+  const typeScoresInQ={};
+  quadraTypes.forEach(tc=>{
     let sc=0;
     Object.keys(PW).forEach(p=>{
       const im=TMA[tc][p];
-      if(im && imAvg[im]!=null) sc+=(imAvg[im]-50)*PW[p];
+      if(im) sc+=(imAvg[im]-50)*PW[p];
     });
-    aggTypeScores[tc]=sc;
+    typeScoresInQ[tc]=sc;
   });
-  const aggSorted=Object.entries(aggTypeScores).sort((a,b)=>b[1]-a[1]);
-  const aggTopType=aggSorted[0][0];
+  const inQSorted=Object.entries(typeScoresInQ).sort((a,b)=>b[1]-a[1]);
+  const aggTopType=inQSorted[0][0];
 
-  // 単純多数決も参考に
+  // 単純多数決（参考）
   const typeVotes={};
-  responses.forEach(r=>{typeVotes[r.topType]=(typeVotes[r.topType]||0)+1;});
-  const sortedVotes=Object.entries(typeVotes).sort((a,b)=>b[1]-a[1]);
-  const topVoteType=sortedVotes[0][0];
-  const topVoteCount=sortedVotes[0][1];
-
-  // 信頼度：IM集計一致度 × 回答数係数
-  const avgRel=responses.reduce((s,r)=>s+(r.reliability||3),0)/count;
+  responses.forEach(r=>{if(r.topType) typeVotes[r.topType]=(typeVotes[r.topType]||0)+1;});
+  const topVoteCount=typeVotes[aggTopType]||0;
   const topRatio=topVoteCount/count;
+
+  // 信頼度スコア
+  const avgRel=responses.reduce((s,r)=>s+(r.reliability||3),0)/count;
   const countFactor=Math.min(1,count/8);
   const confidence=Math.round(topRatio*avgRel/5*countFactor*100);
 
@@ -1357,11 +1372,12 @@ function renderAggregation(responses){
   document.getElementById('agg-confidence-num').textContent=confidence+'%';
   setTimeout(()=>document.getElementById('agg-confidence-fill').style.width=confidence+'%',100);
 
-  // 投票バー（参考表示）
+  // ── バー表示: 回答数に応じてタイプ数を制限 ──
+  // 1件→1タイプ、2-3件→2タイプ、4件以上→同クアドラ内4タイプ
+  const barCount = count===1 ? 1 : count<=3 ? 2 : 4;
+  const mx=inQSorted[0][1], mn=inQSorted[inQSorted.length-1][1], rng=mx-mn||1;
   const bars=document.getElementById('type-vote-bars');bars.innerHTML='';
-  // IM加重スコアで上位5タイプ表示
-  const mx=aggSorted[0][1],mn=aggSorted[aggSorted.length-1][1],rng=mx-mn||1;
-  aggSorted.slice(0,5).forEach(([type,sc])=>{
+  inQSorted.slice(0,barCount).forEach(([type,sc])=>{
     const pct=Math.round((sc-mn)/rng*100);
     const votes=typeVotes[type]||0;
     const row=document.createElement('div');row.className='vote-bar-row';
@@ -1382,8 +1398,8 @@ function renderResponsesList(responses){
     const el=document.createElement('div');el.className='response-item';
     const rel=r.reliability||3;const stars='★'.repeat(rel)+'☆'.repeat(5-rel);
     const top3Html=(r.top3||[]).slice(0,3).map((t,i)=>{
-      const quadra=TI[t.code]?.quadra||'';
-      return `<span style="font-family:'Cormorant Garamond',serif;font-size:${i===0?'1rem':'.8rem'};color:${i===0?'var(--accent)':'var(--text-muted)'};margin-right:4px;">${t.code}<span style="font-size:.6rem;color:var(--text-muted);margin-left:2px;">${i===0?'('+t.displayScore+'pt)':''}</span></span>`;
+      const pts=t.displayScore??t.score;
+      return `<span style="font-family:'Cormorant Garamond',serif;font-size:${i===0?'1rem':'.8rem'};color:${i===0?'var(--accent)':'var(--text-muted)'};margin-right:4px;">${t.code}<span style="font-size:.6rem;color:var(--text-muted);margin-left:2px;">${(i===0&&pts!=null)?'('+pts+'pt)':''}</span></span>`;
     }).join('<span style="color:var(--border2);margin-right:4px;">›</span>');
     // IM top 3
     const imTop3=r.imScores?Object.entries(r.imScores).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`<span style="font-size:.67rem;background:var(--bg2);border:1px solid var(--border);padding:1px 6px;border-radius:20px;color:var(--text-dim);">${k}</span>`).join(''):'';
