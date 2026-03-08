@@ -737,26 +737,51 @@ const QUESTIONS=[
 ];
 
 const TOTAL_Q=56; // 40 IM + 12 quadra + 4 reliability
-const PW={pos1:1.5,pos2:1.3,pos3:0.8,pos4:0.6,pos5:0.9,pos6:0.7,pos7:0.4,pos8:0.5};
-const QC={Alpha:3,Beta:3,Gamma:3,Delta:3};
-const QM={Alpha:["ILE","SEI","ESE","LII"],Beta:["EIE","LSI","SLE","IEI"],Gamma:["SEE","ILI","LIE","ESI"],Delta:["LSE","EII","IEE","SLI"]};
-const TMA={
-  ILE:{pos1:"Ne",pos2:"Ti",pos3:"Se",pos4:"Fi",pos5:"Si",pos6:"Fe",pos7:"Ni",pos8:"Te"},
-  SEI:{pos1:"Si",pos2:"Fe",pos3:"Ni",pos4:"Te",pos5:"Ne",pos6:"Ti",pos7:"Se",pos8:"Fi"},
-  ESE:{pos1:"Fe",pos2:"Si",pos3:"Ti",pos4:"Ne",pos5:"Fi",pos6:"Ni",pos7:"Te",pos8:"Se"},
-  LII:{pos1:"Ti",pos2:"Ne",pos3:"Fi",pos4:"Se",pos5:"Te",pos6:"Si",pos7:"Fe",pos8:"Ne"},
-  EIE:{pos1:"Fe",pos2:"Ni",pos3:"Si",pos4:"Te",pos5:"Fi",pos6:"Se",pos7:"Ti",pos8:"Ne"},
-  LSI:{pos1:"Ti",pos2:"Se",pos3:"Ne",pos4:"Fi",pos5:"Te",pos6:"Ni",pos7:"Fe",pos8:"Si"},
-  SLE:{pos1:"Se",pos2:"Ti",pos3:"Fe",pos4:"Ni",pos5:"Si",pos6:"Te",pos7:"Ne",pos8:"Fi"},
-  IEI:{pos1:"Ni",pos2:"Fe",pos3:"Ti",pos4:"Se",pos5:"Ne",pos6:"Si",pos7:"Te",pos8:"Fi"},
-  SEE:{pos1:"Se",pos2:"Fi",pos3:"Te",pos4:"Ni",pos5:"Si",pos6:"Fe",pos7:"Ne",pos8:"Ti"},
-  ILI:{pos1:"Ni",pos2:"Te",pos3:"Fi",pos4:"Se",pos5:"Ne",pos6:"Si",pos7:"Fe",pos8:"Ti"},
-  LIE:{pos1:"Te",pos2:"Ni",pos3:"Si",pos4:"Fe",pos5:"Ti",pos6:"Se",pos7:"Fi",pos8:"Ne"},
-  ESI:{pos1:"Fi",pos2:"Se",pos3:"Ne",pos4:"Ti",pos5:"Fe",pos6:"Ni",pos7:"Si",pos8:"Te"},
-  LSE:{pos1:"Te",pos2:"Si",pos3:"Ni",pos4:"Fe",pos5:"Ti",pos6:"Ne",pos7:"Fi",pos8:"Se"},
-  EII:{pos1:"Fi",pos2:"Ne",pos3:"Se",pos4:"Ti",pos5:"Fe",pos6:"Si",pos7:"Te",pos8:"Ni"},
-  IEE:{pos1:"Ne",pos2:"Fi",pos3:"Ti",pos4:"Se",pos5:"Ni",pos6:"Te",pos7:"Si",pos8:"Fe"},
-  SLI:{pos1:"Si",pos2:"Te",pos3:"Fe",pos4:"Ni",pos5:"Se",pos6:"Ti",pos7:"Fi",pos8:"Ne"},
+
+// ── Model A (8 positions as ordered array) ──
+const MODEL_A={
+  ILE:["Ne","Ti","Se","Fi","Si","Fe","Ni","Te"],
+  SEI:["Si","Fe","Ni","Te","Ne","Ti","Se","Fi"],
+  ESE:["Fe","Si","Te","Ni","Ti","Ne","Fi","Se"],
+  LII:["Ti","Ne","Fi","Se","Fe","Si","Te","Ni"],
+  EIE:["Fe","Ni","Te","Si","Ti","Se","Fi","Ne"],
+  SLE:["Se","Ti","Ne","Fi","Ni","Fe","Si","Te"],
+  LSI:["Ti","Se","Fi","Ne","Fe","Ni","Te","Si"],
+  IEI:["Ni","Fe","Si","Te","Se","Ti","Ne","Fi"],
+  SEE:["Se","Fi","Ne","Ti","Ni","Te","Si","Fe"],
+  ILI:["Ni","Te","Si","Fe","Se","Fi","Ne","Ti"],
+  LIE:["Te","Ni","Fe","Si","Fi","Se","Ti","Ne"],
+  ESI:["Fi","Se","Ti","Ne","Te","Ni","Fe","Si"],
+  SLI:["Si","Te","Ni","Fe","Ne","Fi","Se","Ti"],
+  IEE:["Ne","Fi","Se","Ti","Si","Te","Ni","Fe"],
+  LSE:["Te","Si","Fe","Ni","Fi","Ne","Ti","Se"],
+  EII:["Fi","Ne","Ti","Se","Te","Si","Fe","Ni"],
+};
+// TMA used by rest of app (same structure, object form)
+const TMA={};
+for(const tc in MODEL_A){
+  const arr=MODEL_A[tc];
+  TMA[tc]={pos1:arr[0],pos2:arr[1],pos3:arr[2],pos4:arr[3],pos5:arr[4],pos6:arr[5],pos7:arr[6],pos8:arr[7]};
+}
+
+// PW alias for aggregation (pos-weight object form matching old TMA keys)
+const PW={pos1:1.00,pos2:0.80,pos3:0.25,pos4:0.40,pos5:0.25,pos6:0.40,pos7:0.20,pos8:0.15};
+const QUADRA_MAP={ILE:"Alpha",SEI:"Alpha",ESE:"Alpha",LII:"Alpha",EIE:"Beta",LSI:"Beta",SLE:"Beta",IEI:"Beta",SEE:"Gamma",ILI:"Gamma",LIE:"Gamma",ESI:"Gamma",LSE:"Delta",EII:"Delta",IEE:"Delta",SLI:"Delta"};
+const QUADRA_VALUES={Alpha:new Set(["Ne","Ti","Fe","Si"]),Beta:new Set(["Fe","Ni","Se","Ti"]),Gamma:new Set(["Fi","Te","Se","Ni"]),Delta:new Set(["Si","Te","Fi","Ne"])};
+const ELEMENTS=["Te","Ti","Fe","Fi","Ne","Ni","Se","Si"];
+const TYPES=["ILE","SEI","ESE","LII","EIE","LSI","SLE","IEI","SEE","ILI","LIE","ESI","LSE","EII","IEE","SLI"];
+// position weights and value signs for dot product scoring (from v2.5 engine)
+const POS_W_ARR=[1.00,0.80,0.25,0.40,0.25,0.40,0.20,0.15];
+const VAL_SIGN=[+1,+1,-1,-1,+1,+1,-1,-1]; // positions 1-4 valued, 5-8 non-valued
+const DICH={
+  E:new Set(["ILE","ESE","EIE","SLE","SEE","LIE","LSE","IEE"]),
+  I:new Set(["LII","SEI","LSI","IEI","ESI","ILI","SLI","EII"]),
+  S:new Set(["SEI","ESE","LSI","SLE","SEE","ESI","LSE","SLI"]),
+  N:new Set(["ILE","LII","EIE","IEI","IEE","EII","LIE","ILI"]),
+  T:new Set(["ILE","LII","LSI","SLE","LIE","LSE","ILI","SLI"]),
+  F:new Set(["SEI","ESE","EIE","IEI","SEE","ESI","IEE","EII"]),
+  J:new Set(["LII","ESE","EIE","LSI","ESI","LIE","LSE","EII"]),
+  P:new Set(["ILE","SEI","SLE","IEI","SEE","ILI","SLI","IEE"])
 };
 const TI={
   ILE:{alias:"Don Quixote",quadra:"Alpha",shortDesc:"可能性の探索者",description:"ILE（ドン・キホーテ）は、世界を可能性の網として知覚する型です。常に新しいアイデアや未知のパターンを追い求め、どんな物事にも「別の見方があるのでは？」という問いを自然と向けます。\n\nその思考は体系的でありながら固定されず、分類・論理・構造によって世界を整理しようとします。ただし、その論理はあくまで探索のための道具であり、現実の細部や人間関係の機微は後回しになりがちです。\n\n最もエネルギーが出るのは、誰も考えたことのない問いを立てる瞬間。その目は、常に地平線の向こうを見ています。"},
@@ -1011,75 +1036,145 @@ function prevQuestion(){
 //  ステップ2: そのクアドラ内4タイプをIMスコアで順位付け
 //  → タイプ・クアドラ・自我機能が必ず整合する
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+//  BAYESIAN INFERENCE ENGINE (ported from v2.5)
+// ══════════════════════════════════════════════
+const _clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const _sigmoid=(x)=>1/(1+Math.exp(-x));
+function _normalizeVec(obj){const s=Object.values(obj).reduce((a,b)=>a+b,0)||1;const o={};for(const k in obj)o[k]=obj[k]/s;return o;}
+
 function computeScores(){
-  const imRaw={Ni:0,Ne:0,Si:0,Se:0,Ti:0,Te:0,Fi:0,Fe:0};
+  // ── Step 1: collect raw scores from answers ──
+  const elementScores={};ELEMENTS.forEach(e=>elementScores[e]=0);
+  const elementCount={};ELEMENTS.forEach(e=>elementCount[e]=0);
+  const axisScores={E:0,I:0,S:0,N:0,T:0,F:0,J:0,P:0};
   const quadraRaw={Alpha:0,Beta:0,Gamma:0,Delta:0};
-  let relRaw=0;
-  const imCount={Ni:0,Ne:0,Si:0,Se:0,Ti:0,Te:0,Fi:0,Fe:0};
   const quadraCount={Alpha:0,Beta:0,Gamma:0,Delta:0};
-  let relCount=0;
+  let relRaw=0,relCount=0;
+  let axisAnswered=0;
 
   QUESTIONS.forEach((q,i)=>{
-    let v=state.answers[i]; if(v===null) v=3;
-    const n=(q.reversed?(6-v):v)-3; // -2〜+2
+    let v=state.answers[i];if(v===null)v=3;
+    // Convert 1-5 likert → -2..+2
+    const raw=(q.reversed?(6-v):v)-3;
+
     if(q.category==='im_direct'&&q.im){
-      imRaw[q.im]+=n; imCount[q.im]++;
+      elementScores[q.im]+=raw;
+      elementCount[q.im]++;
     } else if(q.category==='quadra'&&q.quadra){
-      quadraRaw[q.quadra]+=n; quadraCount[q.quadra]++;
+      quadraRaw[q.quadra]+=raw;
+      quadraCount[q.quadra]++;
+      // Also map quadra to its valued elements
+      QUADRA_VALUES[q.quadra].forEach(e=>{elementScores[e]+=raw*0.4;});
     } else if(q.category==='reliability'){
-      relRaw+=n; relCount++;
+      relRaw+=raw;relCount++;
     }
   });
 
-  // ── 0-100正規化スコア ──
-  const imScores={};
-  Object.keys(imRaw).forEach(im=>{
-    const mx=(imCount[im]||1)*2;
-    imScores[im]=Math.round(((imRaw[im]+mx)/(mx*2))*100);
-  });
-  const quadraScores={};
-  Object.keys(quadraRaw).forEach(q=>{
-    const mx=(quadraCount[q]||1)*2;
-    quadraScores[q]=Math.round(((quadraRaw[q]+mx)/(mx*2))*100);
-  });
+  // ── Step 2: axis-like signals from IM pair dominance ──
+  // Derive dichotomy signals from element scores
+  // E/I: Se+Fe+Ne vs Si+Fi+Ni  (extroverted IM dominant)
+  const extAmt=(elementScores.Se+elementScores.Fe+elementScores.Ne)/3;
+  const intAmt=(elementScores.Si+elementScores.Fi+elementScores.Ni)/3;
+  axisScores.E=extAmt; axisScores.I=intAmt;
+  // S/N
+  axisScores.S=(elementScores.Se+elementScores.Si)/2;
+  axisScores.N=(elementScores.Ne+elementScores.Ni)/2;
+  // T/F
+  axisScores.T=(elementScores.Te+elementScores.Ti)/2;
+  axisScores.F=(elementScores.Fe+elementScores.Fi)/2;
+  // J/P: J types have Judging func leading (Te/Ti/Fe/Fi at pos1)
+  // approximate from quadra signals
+  axisScores.J=(quadraRaw.Alpha+quadraRaw.Beta+quadraRaw.Gamma+quadraRaw.Delta)/2; // neutral
+  axisScores.P=axisScores.J;
 
-  // ── ステップ1: 全タイプのスコアを計算（クアドラ重みを強く） ──
-  // クアドラ正規化スコアを追加ボーナスではなく乗数として使う
-  const typeScores={};
-  Object.keys(TMA).forEach(tc=>{
-    // IMスコアの位置重み付き合計
-    let imScore=0;
-    Object.keys(PW).forEach(p=>{
-      const im=TMA[tc][p];
-      if(im) imScore+=imRaw[im]*PW[p];
+  // ── Step 3: element-based posterior (dot product with Model A weights×signs) ──
+  let maxAbsElem=0;
+  for(const e of ELEMENTS)maxAbsElem=Math.max(maxAbsElem,Math.abs(elementScores[e]));
+  const elemScale=maxAbsElem>0?(1/maxAbsElem):1;
+
+  const elemPosterior={};
+  for(const t of TYPES){
+    let dot=0;
+    MODEL_A[t].forEach((e,pos)=>{
+      dot+=(elementScores[e]||0)*POS_W_ARR[pos]*VAL_SIGN[pos];
     });
-    // クアドラ生スコア（-6〜+6）を大きな重みで加算
-    // 各クアドラ3問×最大2点=最大6点。これを×4倍して影響力を確保
-    const qBonus=quadraRaw[TI[tc].quadra]*4;
-    typeScores[tc]=imScore+qBonus;
+    elemPosterior[t]=_sigmoid(dot*0.18);
+  }
+  const elemNorm=_normalizeVec(elemPosterior);
+
+  // ── Step 4: quadra-based posterior ──
+  // Use quadra scores directly to bias toward matching quadra types
+  const quadraNorm={};Object.keys(quadraRaw).forEach(q=>{
+    const cnt=(quadraCount[q]||1)*2;
+    quadraNorm[q]=_clamp((quadraRaw[q]+cnt)/(cnt*2),0.01,0.99);
   });
+  const quadraTotalQ=Object.values(quadraNorm).reduce((a,b)=>a+b,0)||1;
+  const quadraProb={};Object.keys(quadraNorm).forEach(q=>quadraProb[q]=quadraNorm[q]/quadraTotalQ);
 
-  const allSorted=Object.entries(typeScores)
-    .sort((a,b)=>b[1]-a[1])
-    .map(([c,s])=>({code:c,score:s}));
+  const quadraPosterior={};
+  for(const t of TYPES){
+    quadraPosterior[t]=quadraProb[QUADRA_MAP[t]]||0.25;
+  }
+  const quadraNormP=_normalizeVec(quadraPosterior);
 
-  // ── ステップ2: 上位タイプのクアドラを topQuadra として確定 ──
-  // 1位タイプのクアドラが topQuadra（クアドラスコア独立計算とは別）
+  // ── Step 5: axis-based posterior ──
+  const valE=axisScores.E-axisScores.I;
+  const valS=axisScores.S-axisScores.N;
+  const valT=axisScores.T-axisScores.F;
+  const pE=_sigmoid(valE*0.35);
+  const pS=_sigmoid(valS*0.35);
+  const pT=_sigmoid(valT*0.35);
+  const axisPosterior={};
+  for(const t of TYPES){
+    axisPosterior[t]=((DICH.E.has(t)?pE:(1-pE))+(DICH.S.has(t)?pS:(1-pS))+(DICH.T.has(t)?pT:(1-pT)))/3;
+  }
+  const axisNorm=_normalizeVec(axisPosterior);
+
+  // ── Step 6: combine (elem=50%, quadra=35%, axis=15%) ──
+  const combined={};
+  for(const t of TYPES){
+    combined[t]=Math.max(1e-12,0.50*(elemNorm[t]||0)+0.35*(quadraNormP[t]||0)+0.15*(axisNorm[t]||0));
+  }
+  const posterior=_normalizeVec(combined);
+
+  // ── Step 7: derive topType, topQuadra ──
+  const allSorted=Object.entries(posterior).sort((a,b)=>b[1]-a[1]).map(([code,score])=>({code,score}));
   const topType=allSorted[0].code;
-  const topQuadra=TI[topType].quadra;
+  const topQuadra=QUADRA_MAP[topType];
 
-  // 自我機能は1位タイプのModel A pos1/pos2（必ず整合）
-  const egoFunctions=[TMA[topType].pos1, TMA[topType].pos2];
-
-  // displayScore: 全体の1位を100、最下位を30にスケール
-  const mx=allSorted[0].score, mn=allSorted[allSorted.length-1].score, rng=mx-mn||1;
+  // displayScore: 0-100 scale
+  const mx=allSorted[0].score,mn=allSorted[allSorted.length-1].score,rng=mx-mn||1;
   allSorted.forEach(t=>{t.displayScore=Math.round(((t.score-mn)/rng)*70+30);});
 
+  // ── Step 8: imScores for visualization (0-100 per IM element, Model A ordered) ──
+  // For display: valuedProb approach — how "valued" each element is based on posterior
+  const valuedProb={};
+  for(const e of ELEMENTS){
+    let s=0;
+    for(const t of TYPES){if(QUADRA_VALUES[QUADRA_MAP[t]].has(e))s+=(posterior[t]||0);}
+    valuedProb[e]=_clamp(s,0,1);
+  }
+  // Convert to 0-100 score centered on 50
+  const imScores={};
+  ELEMENTS.forEach(e=>{imScores[e]=Math.round(valuedProb[e]*100);});
+
+  // ── Also compute 0-100 quadra display scores ──
+  const quadraScores={};
+  ['Alpha','Beta','Gamma','Delta'].forEach(q=>{
+    const cnt=(quadraCount[q]||1)*2;
+    quadraScores[q]=Math.round(((quadraRaw[q]+cnt)/(cnt*2))*100);
+  });
+
+  // Ego functions = pos1, pos2 of 1st type (always correct by definition)
+  const egoFunctions=[MODEL_A[topType][0],MODEL_A[topType][1]];
+
+  // Reliability
   const reliability=Math.max(1,Math.min(5,
-    relCount>0 ? Math.round(((relRaw+(relCount*2))/(relCount*4))*5) : 3
+    relCount>0?Math.round(((relRaw+(relCount*2))/(relCount*4))*5):3
   ));
 
-  return{imScores,quadraScores,allSorted,topType,topQuadra,egoFunctions,reliability,imRaw,quadraRaw};
+  return{imScores,quadraScores,allSorted,topType,topQuadra,egoFunctions,reliability,posterior};
 }
 
 // ══════════════════════════════════════════════
@@ -1128,15 +1223,19 @@ async function showResult(){
   });
 
   const imBars=document.getElementById('im-bars');imBars.innerHTML='';
-  const sortedIm=[...imOrder].sort((a,b)=>imScores[b]-imScores[a]);
-  sortedIm.forEach(im=>{
-    const isEgo=egoFunctions.includes(im);
+  // Display IM elements ordered by Model A position of the top type
+  const modelAOrder=MODEL_A[topType]; // 8 positions
+  modelAOrder.forEach((im,posIdx)=>{
+    const isValued=posIdx<4; // pos1-4 = valued (ego+super-id), pos5-8 = non-valued
+    const posLabel=posIdx===0?'①主導':posIdx===1?'②創造':posIdx===2?'③役割':posIdx===3?'④脆弱':posIdx===4?'⑤提案':posIdx===5?'⑥動員':posIdx===6?'⑦無視':posIdx===7?'⑧デモ':'';
+    const valueBadge=isValued?'<span class="im-ego-badge" style="background:var(--accent)">価値</span>':'<span class="im-ego-badge" style="background:var(--text-muted)">非価値</span>';
+    const isEgo=posIdx<2;
     const row=document.createElement('div');row.className='im-bar-row';
-    row.innerHTML=`<div class="im-bar-label-wrap"><span class="im-bar-label">${im}</span>${isEgo?'<span class="im-ego-badge">自我</span>':''}</div><div class="im-bar-track"><div class="im-bar-fill im-${im}" style="width:0%"></div></div><span class="im-bar-val">${imScores[im]}</span>`;
+    row.innerHTML=`<div class="im-bar-label-wrap"><span class="im-bar-label">${im}</span><span style="font-size:.58rem;color:var(--text-muted);margin-left:2px">${posLabel}</span>${isEgo?'<span class="im-ego-badge">自我</span>':''}${valueBadge}</div><div class="im-bar-track"><div class="im-bar-fill im-${im}" style="width:0%"></div></div><span class="im-bar-val">${imScores[im]}</span>`;
     imBars.appendChild(row);setTimeout(()=>row.querySelector('.im-bar-fill').style.width=imScores[im]+'%',100);
   });
   document.getElementById('ego-explanation').innerHTML=
-    `1位タイプ <strong>${topType}</strong> のModel Aに基づき、<strong>${egoFunctions[0]}</strong>（価値機能）と <strong>${egoFunctions[1]}</strong>（創造機能）を自我ブロックとして表示しています。`;
+    `1位タイプ <strong>${topType}</strong> のModel A順で表示。上4つが<strong>価値機能</strong>（ego+super-id）、下4つが<strong>非価値機能</strong>（super-ego+id）。`;
 
   const stars=document.getElementById('reliability-stars');stars.innerHTML='';
   for(let i=1;i<=5;i++){const s=document.createElement('div');s.className='star'+(i<=reliability?' filled':'');stars.appendChild(s);}
