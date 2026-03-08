@@ -409,6 +409,7 @@ body{font-family:'Noto Serif JP',serif;background:var(--bg);color:var(--text);mi
             <option value="">選択してください</option>
             <option value="親友">親友</option>
             <option value="友人">友人</option>
+            <option value="フォロワー">フォロワー</option>
             <option value="恋人・パートナー">恋人・パートナー</option>
             <option value="家族">家族</option>
             <option value="職場・同僚">職場・同僚</option>
@@ -460,7 +461,7 @@ body{font-family:'Noto Serif JP',serif;background:var(--bg);color:var(--text);mi
   <div class="container">
     <div class="progress-info">
       <div class="progress-num" id="q-num">1</div>
-      <div class="progress-total">/ 50問</div>
+      <div class="progress-total">/ <span id="q-total">56</span>問</div>
     </div>
     <div class="question-screen-inner" id="question-inner">
       <div id="q-category-badge" class="question-category-badge"></div>
@@ -550,10 +551,10 @@ body{font-family:'Noto Serif JP',serif;background:var(--bg);color:var(--text);mi
     <div class="share-card-preview animate-in" id="share-card-section" style="animation-delay:.38s;display:none;">
       <div class="share-card-label">SNS シェア用カード</div>
       <canvas id="ogp-canvas" class="share-card-canvas" width="600" height="314"></canvas>
+      <div style="font-size:.67rem;color:var(--text-muted);margin:8px 0 10px;line-height:1.6;">📱 画像を長押しで保存できます</div>
       <div class="sns-btns">
         <button class="btn-sns btn-twitter" onclick="shareToTwitter()">𝕏 でシェア</button>
         <button class="btn-sns btn-line" onclick="shareToLine()">LINE でシェア</button>
-        <button class="btn-sns" style="background:var(--bg2);color:var(--text-dim);border:1px solid var(--border2);" onclick="downloadShareCard()">📥 画像を保存</button>
       </div>
     </div>
 
@@ -667,60 +668,77 @@ body{font-family:'Noto Serif JP',serif;background:var(--bg);color:var(--text);mi
 //  DATA
 // ══════════════════════════════════════════════
 const QUESTIONS=[
-  {id:1,text:"「なんとなくこうなりそう」という感覚で物事の見通しを話すことがある。",im:"Ni",reversed:false,category:"im_direct"},
-  {id:2,text:"今起きていることより「これがどこへ向かうか」という話のほうが活き活きして見える。",im:"Ni",reversed:false,category:"im_direct"},
-  {id:3,text:"自分の予感や直感を、あまり説明せずそのまま信じて行動することがある。",im:"Ni",reversed:false,category:"im_direct"},
-  {id:4,text:"じっくり待つことや、流れに身を任せることを自然と好んでいるように見える。",im:"Ni",reversed:false,category:"im_direct"},
-  {id:5,text:"話しているうちに「そういえばこういう可能性もある」と話題を広げることがよくある。",im:"Ne",reversed:false,category:"im_direct"},
-  {id:6,text:"アイデアや思いつきを次々と出すことを、楽しそうにやっている。",im:"Ne",reversed:false,category:"im_direct"},
-  {id:7,text:"まだ形になっていない構想や可能性の話になると、目が輝くことがある。",im:"Ne",reversed:false,category:"im_direct"},
-  {id:8,text:"「一つのことに集中する」より「色々なことに関わる」ほうが向いているように見える。",im:"Ne",reversed:false,category:"im_direct"},
-  {id:9,text:"場所・食事・温度など、身の回りの快適さへのこだわりをよく口にする。",im:"Si",reversed:false,category:"im_direct"},
-  {id:10,text:"体調や感覚の微妙な変化に敏感で、それをよく言語化する。",im:"Si",reversed:false,category:"im_direct"},
-  {id:11,text:"慣れ親しんだ環境や習慣を、変えずに守ることを大切にしているように見える。",im:"Si",reversed:false,category:"im_direct"},
-  {id:12,text:"騒がしい場所や落ち着かない環境では、明らかに消耗しているように見える。",im:"Si",reversed:false,category:"im_direct"},
-  {id:13,text:"その場の主導権を、気づいたら自然と握っていることがある。",im:"Se",reversed:false,category:"im_direct"},
-  {id:14,text:"「やるならやる」というはっきりした意志を、行動で示すことが多い。",im:"Se",reversed:false,category:"im_direct"},
-  {id:15,text:"プレッシャーがかかる場面でも萎縮せず、むしろ力が出るように見える。",im:"Se",reversed:false,category:"im_direct"},
-  {id:16,text:"物事をぐずぐず引き延ばすことを嫌い、すぐ動こうとする傾向がある。",im:"Se",reversed:false,category:"im_direct"},
-  {id:17,text:"「それはどういう定義？」「そこに矛盾がある」という指摘を自然とする。",im:"Ti",reversed:false,category:"im_direct"},
-  {id:18,text:"物事を分類・体系化して理解しようとする様子がよく見られる。",im:"Ti",reversed:false,category:"im_direct"},
-  {id:19,text:"話の筋道が通っているかどうかを、自然と気にしているように見える。",im:"Ti",reversed:false,category:"im_direct"},
-  {id:20,text:"論理の話になると迷いがなくなり、自信を持って話すように見える。",im:"Ti",reversed:false,category:"im_direct"},
-  {id:21,text:"「実際どのくらい効果があるの？」「根拠はあるの？」という反応をしがちだ。",im:"Te",reversed:false,category:"im_direct"},
-  {id:22,text:"無駄な手順や非効率なやり方を放置できず、改善しようとすることが多い。",im:"Te",reversed:false,category:"im_direct"},
-  {id:23,text:"目標や成果が明確な話のほうが、乗り気になりやすい。",im:"Te",reversed:false,category:"im_direct"},
-  {id:24,text:"感情的な話より「実際に機能するかどうか」で評価する場面が目立つ。",im:"Te",reversed:false,category:"im_direct"},
-  {id:25,text:"好きな人と苦手な人がはっきりしていて、それをあまり表に出さない。",im:"Fi",reversed:false,category:"im_direct"},
-  {id:26,text:"人との関係の深さや「本当に信頼できるか」を、静かにじっくり確かめるように見える。",im:"Fi",reversed:false,category:"im_direct"},
-  {id:27,text:"自分の感情や価値観を、内側で十分確かめてから言葉にすることが多い。",im:"Fi",reversed:false,category:"im_direct"},
-  {id:28,text:"表面的な付き合いより、少数の深い人間関係を大切にしているように見える。",im:"Fi",reversed:false,category:"im_direct"},
-  {id:29,text:"場の雰囲気を明るくしたり和ませたりする役割を、自然と担っていることが多い。",im:"Fe",reversed:false,category:"im_direct"},
-  {id:30,text:"喜怒哀楽が表情や言葉ににじみ出やすく、感情が周囲に伝わりやすい。",im:"Fe",reversed:false,category:"im_direct"},
-  {id:31,text:"誰かの気分が落ちているとすぐ気づき、その場の空気を変えようとする。",im:"Fe",reversed:false,category:"im_direct"},
-  {id:32,text:"感情を共有することや、一緒に盛り上がることをとても大切にしているように見える。",im:"Fe",reversed:false,category:"im_direct"},
-  {id:33,text:"特に目的がなくても、アイデアや雑談を純粋に楽しむだけの会話をとても大切にしているように見える。",im:null,quadra:"Alpha",reversed:false,category:"quadra"},
-  {id:34,text:"堅苦しい上下関係よりも、フラットで和やかな雰囲気の場をより好むように見える。",im:null,quadra:"Alpha",reversed:false,category:"quadra"},
-  {id:35,text:"話の内容が面白いかどうか・知的に楽しいかどうかを、かなり重視しているように見える。",im:null,quadra:"Alpha",reversed:false,category:"quadra"},
-  {id:36,text:"何かに本気で取り組む時、強い使命感や「自分がやらねば」という意識を感じさせる。",im:null,quadra:"Beta",reversed:false,category:"quadra"},
-  {id:37,text:"物事の「大きな流れ」や「この時代における意味」のような話に深く引き込まれることがある。",im:null,quadra:"Beta",reversed:false,category:"quadra"},
-  {id:38,text:"はっきりとした立場や信念を持ち、それを軸に行動することが多い。",im:null,quadra:"Beta",reversed:false,category:"quadra"},
-  {id:39,text:"結果や実績で評価されることを好み、プロセスよりも成果にこだわる傾向がある。",im:null,quadra:"Gamma",reversed:false,category:"quadra"},
-  {id:40,text:"自分のやり方や領域に他者が踏み込んでくることを、あまり好まないように見える。",im:null,quadra:"Gamma",reversed:false,category:"quadra"},
-  {id:41,text:"「強い人間・自立した人間」であることへの意識が、言動の端々に感じられる。",im:null,quadra:"Gamma",reversed:false,category:"quadra"},
-  {id:42,text:"競争や比較に対して、回避するより正面から向き合う傾向がある。",im:null,quadra:"Gamma",reversed:false,category:"quadra"},
-  {id:43,text:"身近な人の生活や日常を少しよくするような、地に足のついた行動を大切にしている。",im:null,quadra:"Delta",reversed:false,category:"quadra"},
-  {id:44,text:"大きな理想を語るよりも、今できる具体的な改善を考えることのほうが好きに見える。",im:null,quadra:"Delta",reversed:false,category:"quadra"},
-  {id:45,text:"特定の人との深い信頼関係を、何よりも大切にしているように見える。",im:null,quadra:"Delta",reversed:false,category:"quadra"},
-  {id:46,text:"自分や身近な人が「実際に心地よく暮らせるか」という視点で物事を判断することが多い。",im:null,quadra:"Delta",reversed:false,category:"quadra"},
-  {id:47,text:"この人のことを、自分はよく理解していると思う。",im:null,reversed:false,category:"reliability"},
-  {id:48,text:"この人の行動や発言は、場面によってかなり変わり、一貫性がつかみにくいと感じる。",im:null,reversed:true,category:"reliability"},
-  {id:49,text:"この人と過ごした具体的な場面を、いくつか思い浮かべながら回答できた。",im:null,reversed:false,category:"reliability"},
-  {id:50,text:"この人のことを思い浮かべながら答えるのが、途中から難しくなった。",im:null,reversed:true,category:"reliability"},
+  // ── Ni × 5 ──
+  {id:1, text:"何かを決める前に「なんとなく、こうなる気がする」という予感をよく口にする。",im:"Ni",reversed:false,category:"im_direct"},
+  {id:2, text:"「今どうするか」より「これが将来どうなるか」という話のほうが明らかに活き活きして見える。",im:"Ni",reversed:false,category:"im_direct"},
+  {id:3, text:"急いで結論を出さず、「もう少し待てばわかる」と感じてじっくり保留できる。",im:"Ni",reversed:false,category:"im_direct"},
+  {id:4, text:"物事の流れや転換点を、他の人より一歩早く察知することがある。",im:"Ni",reversed:false,category:"im_direct"},
+  {id:5, text:"「この状況、絶対こう動く」という確信を、根拠なく持っていることがある。",im:"Ni",reversed:false,category:"im_direct"},
+  // ── Ne × 5 ──
+  {id:6, text:"話している途中で「あ、それで言うとこんな話もある」と脱線することが多い。",im:"Ne",reversed:false,category:"im_direct"},
+  {id:7, text:"まだ存在しない仮定の話・ありえたかもしれない話を好んでする。",im:"Ne",reversed:false,category:"im_direct"},
+  {id:8, text:"新しいアイデアや「こんなのどう？」という提案を、次々と楽しそうに出す。",im:"Ne",reversed:false,category:"im_direct"},
+  {id:9, text:"一つのことを完結させるより、複数の面白そうなことを同時並行で動かしている。",im:"Ne",reversed:false,category:"im_direct"},
+  {id:10,text:"「もしこうだったら？」という仮定の話に目を輝かせて乗ってくる。",im:"Ne",reversed:false,category:"im_direct"},
+  // ── Si × 5 ──
+  {id:11,text:"いつものお店・いつものルート・いつもの席など、慣れた環境を好む様子がある。",im:"Si",reversed:false,category:"im_direct"},
+  {id:12,text:"食べ物・温度・音・においなど、身の回りの環境の変化に敏感に反応する。",im:"Si",reversed:false,category:"im_direct"},
+  {id:13,text:"「前回はこうだった」「去年はこうだった」と過去の感覚を基準にして話すことが多い。",im:"Si",reversed:false,category:"im_direct"},
+  {id:14,text:"体調の微妙な変化（疲れ・緊張・眠気など）をよく言葉にして伝えてくる。",im:"Si",reversed:false,category:"im_direct"},
+  {id:15,text:"騒がしい場所・気温が合わない場所では、明らかに元気がなくなったり早く帰りたがる。",im:"Si",reversed:false,category:"im_direct"},
+  // ── Se × 5 ──
+  {id:16,text:"集団の中にいると、気づけばその場の仕切り役・進行役になっていることが多い。",im:"Se",reversed:false,category:"im_direct"},
+  {id:17,text:"「とりあえずやってみよう」と、考えすぎずにすぐ行動に移せる。",im:"Se",reversed:false,category:"im_direct"},
+  {id:18,text:"プレッシャーや競争がある場面で、萎縮するどころかむしろエネルギーが出る。",im:"Se",reversed:false,category:"im_direct"},
+  {id:19,text:"目の前のことに集中すると、周囲の細かい変化や相手の反応をすぐ読み取れる。",im:"Se",reversed:false,category:"im_direct"},
+  {id:20,text:"「やると決めたらやる」という意志の強さが、言動ににじみ出ている。",im:"Se",reversed:false,category:"im_direct"},
+  // ── Ti × 5 ──
+  {id:21,text:"誰かの発言に対して「それはどういう意味で使ってる？」「そこ矛盾してない？」と自然に突っ込む。",im:"Ti",reversed:false,category:"im_direct"},
+  {id:22,text:"物事を説明するとき、自分なりの分類・整理・体系で話すことが多い。",im:"Ti",reversed:false,category:"im_direct"},
+  {id:23,text:"「なぜそうなるのか」の理屈が腑に落ちないと、動けない・納得できないことがある。",im:"Ti",reversed:false,category:"im_direct"},
+  {id:24,text:"感情的な話よりも「論理的に整合しているか」という視点で物事を判断する場面が多い。",im:"Ti",reversed:false,category:"im_direct"},
+  {id:25,text:"議論や説明のとき、定義や前提を明確にしないと気が済まない様子がある。",im:"Ti",reversed:false,category:"im_direct"},
+  // ── Te × 5 ──
+  {id:26,text:"「実績は？」「数字は？」「根拠はある？」と、具体的な証拠を求める場面が目立つ。",im:"Te",reversed:false,category:"im_direct"},
+  {id:27,text:"無駄な手順・非効率なプロセスを見ると、黙っていられずに改善しようとする。",im:"Te",reversed:false,category:"im_direct"},
+  {id:28,text:"目標・成果・締め切りが明確な話になると、急に乗り気になるか、集中力が増す。",im:"Te",reversed:false,category:"im_direct"},
+  {id:29,text:"「それって実際に使えるの？」「結果としてどうなの？」という実用性重視の発言が多い。",im:"Te",reversed:false,category:"im_direct"},
+  {id:30,text:"やるべきことを整理して、効率よく進めることを自然と優先している。",im:"Te",reversed:false,category:"im_direct"},
+  // ── Fi × 5 ──
+  {id:31,text:"好きな人・苦手な人がはっきりしているが、それを面と向かってあまり言わない。",im:"Fi",reversed:false,category:"im_direct"},
+  {id:32,text:"自分の気持ちや価値観を、すぐ言葉にせず内側でしっかり確かめてから話す。",im:"Fi",reversed:false,category:"im_direct"},
+  {id:33,text:"少数の深い関係を大切にしており、広く浅い付き合いを好まない様子がある。",im:"Fi",reversed:false,category:"im_direct"},
+  {id:34,text:"信頼できるかどうかを、長い時間をかけてじっくり確かめてから心を開く。",im:"Fi",reversed:false,category:"im_direct"},
+  {id:35,text:"自分の価値観に反することを求められると、静かに、でも確実に抵抗する。",im:"Fi",reversed:false,category:"im_direct"},
+  // ── Fe × 5 ──
+  {id:36,text:"場の空気が重くなると、自然と明るく振る舞って和ませようとする。",im:"Fe",reversed:false,category:"im_direct"},
+  {id:37,text:"喜怒哀楽が表情・声・態度ににじみ出やすく、感情が周囲に伝わりやすい。",im:"Fe",reversed:false,category:"im_direct"},
+  {id:38,text:"誰かが落ち込んでいたり不機嫌だったりすると、すぐ気づいて声をかける。",im:"Fe",reversed:false,category:"im_direct"},
+  {id:39,text:"一緒に笑う・一緒に感動するなど、感情を共有することをとても大切にしている。",im:"Fe",reversed:false,category:"im_direct"},
+  {id:40,text:"その場全体が楽しめているかどうかを、常にアンテナを張って気にしている。",im:"Fe",reversed:false,category:"im_direct"},
+  // ── クアドラ × 各3問（Alpha3, Beta3, Gamma3, Delta3） ──
+  {id:41,text:"目的がなくてもただ話すだけの雑談・ブレストをとても楽しんでいる。",im:null,quadra:"Alpha",reversed:false,category:"quadra"},
+  {id:42,text:"上下関係やフォーマルな雰囲気より、フラットで対等な関係を自然と好む。",im:null,quadra:"Alpha",reversed:false,category:"quadra"},
+  {id:43,text:"「面白い話かどうか」「知的に楽しいかどうか」を、会話の中でかなり重視している。",im:null,quadra:"Alpha",reversed:false,category:"quadra"},
+  {id:44,text:"「これは自分がやらなければ」という使命感を、言動の端々から感じ取れる。",im:null,quadra:"Beta",reversed:false,category:"quadra"},
+  {id:45,text:"今の出来事を「時代の流れ」「歴史的な意味」という大きな文脈で語ることがある。",im:null,quadra:"Beta",reversed:false,category:"quadra"},
+  {id:46,text:"信念や立場を明確に持っており、それを軸に動いていることが伝わってくる。",im:null,quadra:"Beta",reversed:false,category:"quadra"},
+  {id:47,text:"プロセスより結果・成果を重視しており、実績で評価されることを好む。",im:null,quadra:"Gamma",reversed:false,category:"quadra"},
+  {id:48,text:"「自分の領域・やり方」に他者が入ってくることを、あまり歓迎しない様子がある。",im:null,quadra:"Gamma",reversed:false,category:"quadra"},
+  {id:49,text:"競争・比較の場面で逃げず、むしろ正面から向き合うことを好む。",im:null,quadra:"Gamma",reversed:false,category:"quadra"},
+  {id:50,text:"身近な人の日常を少しよくするような、具体的で地に足のついた行動を大切にしている。",im:null,quadra:"Delta",reversed:false,category:"quadra"},
+  {id:51,text:"大きな理想より「今できる改善」を優先して考えることが多い。",im:null,quadra:"Delta",reversed:false,category:"quadra"},
+  {id:52,text:"特定の信頼できる人との深い関係を、何よりも大切にしている。",im:null,quadra:"Delta",reversed:false,category:"quadra"},
+  // ── 信頼度 × 4 ──
+  {id:53,text:"のことを、自分はよく理解していると思う。",im:null,reversed:false,category:"reliability"},
+  {id:54,text:"の行動や発言は場面によってかなり変わり、一貫性がつかみにくいと感じる。",im:null,reversed:true,category:"reliability"},
+  {id:55,text:"のことを思い浮かべながら、具体的な場面を想起しつつ回答できた。",im:null,reversed:false,category:"reliability"},
+  {id:56,text:"のことを頭に浮かべながら答えるのが、途中から難しくなった。",im:null,reversed:true,category:"reliability"},
 ];
 
+const TOTAL_Q=56; // 40 IM + 12 quadra + 4 reliability
 const PW={pos1:1.5,pos2:1.3,pos3:0.8,pos4:0.6,pos5:0.9,pos6:0.7,pos7:0.4,pos8:0.5};
-const QC={Alpha:3,Beta:3,Gamma:4,Delta:4};
+const QC={Alpha:3,Beta:3,Gamma:3,Delta:3};
 const QM={Alpha:["ILE","SEI","ESE","LII"],Beta:["EIE","LSI","SLE","IEI"],Gamma:["SEE","ILI","LIE","ESI"],Delta:["LSE","EII","IEE","SLI"]};
 const TMA={
   ILE:{pos1:"Ne",pos2:"Ti",pos3:"Se",pos4:"Fi",pos5:"Si",pos6:"Fe",pos7:"Ni",pos8:"Te"},
@@ -764,12 +782,12 @@ const TI={
 // ══════════════════════════════════════════════
 const state={
   targetName:"",evaluatorName:"",relation:"",period:"",evaluatorType:"",
-  answers:new Array(50).fill(null),currentQ:0,questionOrder:[],
+  answers:new Array(TOTAL_Q).fill(null),currentQ:0,questionOrder:[],
   radarChart:null,
-  sharedLinkId:null,  // link doc id when answering via shared link
+  sharedLinkId:null,
   sharedLinkOwnerUid:null,
   sharedLinkOwnerName:null,
-  lastResultData:null, // store for SNS card
+  lastResultData:null,
 };
 
 // ══════════════════════════════════════════════
@@ -925,17 +943,26 @@ function startQuiz(){
   state.relation=document.getElementById('relation').value;
   state.period=document.getElementById('period').value;
   state.evaluatorType=document.getElementById('evaluator-type').value;
-  buildQuestionOrder();state.currentQ=0;state.answers=new Array(50).fill(null);
+  buildQuestionOrder();state.currentQ=0;state.answers=new Array(TOTAL_Q).fill(null);
   renderQuestion();showScreen('screen-quiz');
 }
 function renderQuestion(){
   const idx=state.questionOrder[state.currentQ];
   const q=QUESTIONS[idx];
-  document.getElementById('quiz-progress-fill').style.width=(state.currentQ/50*100)+'%';
+  const total=TOTAL_Q;
+  document.getElementById('quiz-progress-fill').style.width=(state.currentQ/total*100)+'%';
   document.getElementById('q-num').textContent=state.currentQ+1;
+  document.getElementById('q-total').textContent=total;
   const cl={im_direct:'情報要素',quadra:'クアドラ傾向',reliability:'総合確認'};
   document.getElementById('q-category-badge').textContent=cl[q.category]||'';
-  document.getElementById('q-text').innerHTML=`<span class="question-target">${state.targetName}さん</span>は、${q.text}`;
+  // reliability questions use a special format without "さんは"
+  let qText='';
+  if(q.category==='reliability'){
+    qText=`<span class="question-target">${state.targetName}さん</span>${q.text}`;
+  } else {
+    qText=`<span class="question-target">${state.targetName}さん</span>は、${q.text}`;
+  }
+  document.getElementById('q-text').innerHTML=qText;
   document.querySelectorAll('.likert-btn').forEach(b=>b.classList.remove('selected'));
   const saved=state.answers[idx];
   if(saved!==null){document.querySelector(`.likert-btn[data-val="${saved}"]`)?.classList.add('selected');}
@@ -949,7 +976,7 @@ function selectAnswer(val){
   document.querySelectorAll('.likert-btn').forEach(b=>b.classList.remove('selected'));
   document.querySelector(`.likert-btn[data-val="${val}"]`).classList.add('selected');
   // Auto advance after short delay
-  if(state.currentQ===49){
+  if(state.currentQ===TOTAL_Q-1){
     _autoAdvanceLock=true;
     setTimeout(()=>{_autoAdvanceLock=false;showResult();},320);
     return;
@@ -979,33 +1006,83 @@ function prevQuestion(){
 }
 
 // ══════════════════════════════════════════════
-//  SCORING
+//  SCORING — 改訂版
+//  方針:
+//  1. IMスコアはpos重みで各タイプとのマッチを計算
+//  2. クアドラ得点を強めに乗算（×2.5）してタイプスコアに加算
+//  3. 1位タイプのModel A pos1/pos2 を「自我機能」として表示
+//  4. topQuadra は1位タイプのクアドラを使用（IM/quadra rawから独立）
 // ══════════════════════════════════════════════
 function computeScores(){
   const imRaw={Ni:0,Ne:0,Si:0,Se:0,Ti:0,Te:0,Fi:0,Fe:0};
   const quadraRaw={Alpha:0,Beta:0,Gamma:0,Delta:0};
   let relRaw=0;
+  const imCount={Ni:0,Ne:0,Si:0,Se:0,Ti:0,Te:0,Fi:0,Fe:0};
+  const quadraCount={Alpha:0,Beta:0,Gamma:0,Delta:0};
+  let relCount=0;
+
   QUESTIONS.forEach((q,i)=>{
     let v=state.answers[i];if(v===null)v=3;
-    const n=(q.reversed?(6-v):v)-3;
-    if(q.category==='im_direct'&&q.im)imRaw[q.im]+=n;
-    else if(q.category==='quadra'&&q.quadra)quadraRaw[q.quadra]+=n;
-    else if(q.category==='reliability')relRaw+=n;
+    const n=(q.reversed?(6-v):v)-3; // -2 to +2
+    if(q.category==='im_direct'&&q.im){
+      imRaw[q.im]+=n;
+      imCount[q.im]++;
+    } else if(q.category==='quadra'&&q.quadra){
+      quadraRaw[q.quadra]+=n;
+      quadraCount[q.quadra]++;
+    } else if(q.category==='reliability'){
+      relRaw+=n;relCount++;
+    }
   });
-  const imScores={};Object.keys(imRaw).forEach(im=>{imScores[im]=Math.round(((imRaw[im]+8)/16)*100);});
-  const quadraScores={};Object.keys(quadraRaw).forEach(q=>{const max=QC[q]*2;quadraScores[q]=Math.round(((quadraRaw[q]+max)/(max*2))*100);});
+
+  // IMスコア: 0-100 正規化（問数×2が最大値）
+  const imScores={};
+  Object.keys(imRaw).forEach(im=>{
+    const maxPossible=(imCount[im]||1)*2;
+    imScores[im]=Math.round(((imRaw[im]+maxPossible)/(maxPossible*2))*100);
+  });
+
+  // クアドラスコア: 0-100正規化
+  const quadraScores={};
+  Object.keys(quadraRaw).forEach(q=>{
+    const maxPossible=(quadraCount[q]||1)*2;
+    quadraScores[q]=Math.round(((quadraRaw[q]+maxPossible)/(maxPossible*2))*100);
+  });
+
+  // タイプスコア計算
+  // = Σ(各ポジションIM生得点 × 位置重み) + クアドラ得点 × 2.5(強め)
   const typeScores={};
   Object.keys(TMA).forEach(tc=>{
-    let sc=0;Object.keys(PW).forEach(p=>{sc+=imRaw[TMA[tc][p]]*PW[p];});
-    sc+=(quadraRaw[TI[tc].quadra]/QC[TI[tc].quadra])*1.5;
-    typeScores[tc]=sc;
+    let imScore=0;
+    Object.keys(PW).forEach(p=>{
+      const im=TMA[tc][p];
+      if(im && imRaw[im]!==undefined) imScore+=imRaw[im]*PW[p];
+    });
+    const qr=quadraRaw[TI[tc].quadra]||0;
+    const qMax=(quadraCount[TI[tc].quadra]||1)*2;
+    const qNorm=(qr+qMax)/(qMax*2); // 0-1
+    typeScores[tc]=imScore + qNorm*20; // クアドラ寄与を20ptスケールで加算
   });
-  const sorted=Object.entries(typeScores).sort((a,b)=>b[1]-a[1]).map(([c,s])=>({code:c,score:s}));
-  const mx=sorted[0].score,mn=sorted[sorted.length-1].score,rng=mx-mn||1;
+
+  const sorted=Object.entries(typeScores)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([c,s])=>({code:c,score:s}));
+
+  // displayScore: 1位を100、最下位を0にスケール
+  const mx=sorted[0].score, mn=sorted[sorted.length-1].score, rng=mx-mn||1;
   sorted.forEach(t=>{t.displayScore=Math.round(((t.score-mn)/rng)*70+30);});
-  const topQuadra=Object.entries(quadraScores).sort((a,b)=>b[1]-a[1])[0][0];
-  const reliability=Math.max(1,Math.min(5,Math.round(((relRaw+8)/16)*5)));
-  return{imScores,quadraScores,sorted,topQuadra,reliability,imRaw,quadraRaw};
+
+  const topType=sorted[0].code;
+  // topQuadraは1位タイプのクアドラを使用（一貫性のため）
+  const topQuadra=TI[topType].quadra;
+  // 自我機能は1位タイプのModel A pos1/pos2
+  const egoFunctions=[TMA[topType].pos1, TMA[topType].pos2];
+
+  const reliability=Math.max(1,Math.min(5,
+    relCount>0 ? Math.round(((relRaw+(relCount*2))/(relCount*4))*5) : 3
+  ));
+
+  return{imScores,quadraScores,sorted,topQuadra,egoFunctions,reliability,imRaw,quadraRaw,topType};
 }
 
 // ══════════════════════════════════════════════
@@ -1013,8 +1090,8 @@ function computeScores(){
 // ══════════════════════════════════════════════
 async function showResult(){
   const scores=computeScores();
-  const{imScores,quadraScores,sorted,topQuadra,reliability}=scores;
-  const top3=sorted.slice(0,3);const topType=top3[0].code;
+  const{imScores,quadraScores,sorted,topQuadra,egoFunctions,reliability,topType}=scores;
+  const top3=sorted.slice(0,3);
 
   state.lastResultData={scores,topType,targetName:state.targetName,evaluatorName:state.evaluatorName};
 
@@ -1030,13 +1107,15 @@ async function showResult(){
     podium.appendChild(el);
   });
 
+  // クアドラ表示 — 1位タイプのクアドラで統一
   document.getElementById('quadra-result-name').textContent=`${topQuadra}クアドラ`;
   document.getElementById('quadra-result-name').className=`quadra-result-name quadra-${topQuadra}`;
   const qb=document.getElementById('quadra-bars');qb.innerHTML='';
   const qcol={Alpha:'var(--quadra-alpha)',Beta:'var(--quadra-beta)',Gamma:'var(--quadra-gamma)',Delta:'var(--quadra-delta)'};
   Object.entries(quadraScores).sort((a,b)=>b[1]-a[1]).forEach(([q,sc])=>{
     const row=document.createElement('div');row.className='quadra-bar-row';
-    row.innerHTML=`<span class="quadra-bar-name">${q}</span><div class="quadra-bar-track"><div class="quadra-bar-fill" style="width:0%;background:${qcol[q]}"></div></div><span class="quadra-bar-val">${sc}</span>`;
+    const isTop=(q===topQuadra)?'font-weight:600;':'' ;
+    row.innerHTML=`<span class="quadra-bar-name" style="${isTop}">${q}</span><div class="quadra-bar-track"><div class="quadra-bar-fill" style="width:0%;background:${qcol[q]}"></div></div><span class="quadra-bar-val">${sc}</span>`;
     qb.appendChild(row);setTimeout(()=>row.querySelector('.quadra-bar-fill').style.width=sc+'%',100);
   });
 
@@ -1049,15 +1128,14 @@ async function showResult(){
 
   const imBars=document.getElementById('im-bars');imBars.innerHTML='';
   const sortedIm=[...imOrder].sort((a,b)=>imScores[b]-imScores[a]);
-  const ego=[sortedIm[0],sortedIm[1]];
   sortedIm.forEach(im=>{
-    const isEgo=ego.includes(im);
+    const isEgo=egoFunctions.includes(im);
     const row=document.createElement('div');row.className='im-bar-row';
-    row.innerHTML=`<div class="im-bar-label-wrap"><span class="im-bar-label">${im}</span>${isEgo?'<span class="im-ego-badge">自我候補</span>':''}</div><div class="im-bar-track"><div class="im-bar-fill im-${im}" style="width:0%"></div></div><span class="im-bar-val">${imScores[im]}</span>`;
+    row.innerHTML=`<div class="im-bar-label-wrap"><span class="im-bar-label">${im}</span>${isEgo?'<span class="im-ego-badge">自我</span>':''}</div><div class="im-bar-track"><div class="im-bar-fill im-${im}" style="width:0%"></div></div><span class="im-bar-val">${imScores[im]}</span>`;
     imBars.appendChild(row);setTimeout(()=>row.querySelector('.im-bar-fill').style.width=imScores[im]+'%',100);
   });
   document.getElementById('ego-explanation').innerHTML=
-    `スコア上位2つの情報要素（<strong>${ego[0]}</strong> / <strong>${ego[1]}</strong>）は、<strong>自我ブロック（価値機能・高次元）の候補</strong>として表示しています。`;
+    `1位タイプ <strong>${topType}</strong> のModel Aに基づき、<strong>${egoFunctions[0]}</strong>（価値機能）と <strong>${egoFunctions[1]}</strong>（創造機能）を自我ブロックとして表示しています。`;
 
   const stars=document.getElementById('reliability-stars');stars.innerHTML='';
   for(let i=1;i<=5;i++){const s=document.createElement('div');s.className='star'+(i<=reliability?' filled':'');stars.appendChild(s);}
@@ -1069,11 +1147,9 @@ async function showResult(){
   document.getElementById('desc-short').textContent=info.shortDesc;
   document.getElementById('desc-body').textContent=info.description;
 
-  // Generate OGP share card
-  generateShareCard(topType,imScores,sorted.length);
+  generateShareCard(topType,imScores,1);
   document.getElementById('share-card-section').style.display='block';
 
-  // If from shared link → save to Firestore
   if(state.sharedLinkId && state.sharedLinkOwnerUid){
     await saveResponseToOwner(topType, sorted, imScores, reliability);
     document.getElementById('result-save-notice').style.display='block';
@@ -1233,58 +1309,99 @@ function renderAggregation(responses){
     return;
   }
 
-  // Count votes per type
-  const typeVotes={};
+  // ⑦ 集計方式: 信頼度重み付きIM平均 → タイプスコア再計算
+  const imAccum={Ni:0,Ne:0,Si:0,Se:0,Ti:0,Te:0,Fi:0,Fe:0};
+  let totalWeight=0;
   responses.forEach(r=>{
-    typeVotes[r.topType]=(typeVotes[r.topType]||0)+1;
+    const w=r.reliability||3; // 信頼度(1-5)を重みに
+    if(r.imScores){
+      Object.keys(imAccum).forEach(im=>{
+        if(r.imScores[im]!=null) imAccum[im]+=(r.imScores[im]-50)*w; // 50中心で加算
+      });
+    }
+    totalWeight+=w;
   });
+  // 重み付き平均を0-100に戻す
+  const imAvg={};
+  Object.keys(imAccum).forEach(im=>{
+    imAvg[im]=totalWeight>0 ? Math.round(imAccum[im]/totalWeight+50) : 50;
+  });
+  // 平均IMから各タイプスコア計算
+  const aggTypeScores={};
+  Object.keys(TMA).forEach(tc=>{
+    let sc=0;
+    Object.keys(PW).forEach(p=>{
+      const im=TMA[tc][p];
+      if(im && imAvg[im]!=null) sc+=(imAvg[im]-50)*PW[p];
+    });
+    aggTypeScores[tc]=sc;
+  });
+  const aggSorted=Object.entries(aggTypeScores).sort((a,b)=>b[1]-a[1]);
+  const aggTopType=aggSorted[0][0];
+
+  // 単純多数決も参考に
+  const typeVotes={};
+  responses.forEach(r=>{typeVotes[r.topType]=(typeVotes[r.topType]||0)+1;});
   const sortedVotes=Object.entries(typeVotes).sort((a,b)=>b[1]-a[1]);
   const topVoteType=sortedVotes[0][0];
   const topVoteCount=sortedVotes[0][1];
 
-  // Confidence: top type ratio × reliability average × count factor
+  // 信頼度：IM集計一致度 × 回答数係数
   const avgRel=responses.reduce((s,r)=>s+(r.reliability||3),0)/count;
   const topRatio=topVoteCount/count;
-  const countFactor=Math.min(1,count/10); // 10回答で満点
+  const countFactor=Math.min(1,count/8);
   const confidence=Math.round(topRatio*avgRel/5*countFactor*100);
 
-  document.getElementById('agg-top-type').textContent=topVoteType;
-  document.getElementById('agg-top-alias').textContent=`${TI[topVoteType]?.alias||''}（${TI[topVoteType]?.shortDesc||''}）`;
+  document.getElementById('agg-top-type').textContent=aggTopType;
+  document.getElementById('agg-top-alias').textContent=`${TI[aggTopType]?.alias||''}（${TI[aggTopType]?.shortDesc||''}）`;
   document.getElementById('agg-confidence-num').textContent=confidence+'%';
   setTimeout(()=>document.getElementById('agg-confidence-fill').style.width=confidence+'%',100);
 
-  // Vote bars
+  // 投票バー（参考表示）
   const bars=document.getElementById('type-vote-bars');bars.innerHTML='';
-  const maxV=sortedVotes[0][1];
-  sortedVotes.slice(0,5).forEach(([type,votes])=>{
+  // IM加重スコアで上位5タイプ表示
+  const mx=aggSorted[0][1],mn=aggSorted[aggSorted.length-1][1],rng=mx-mn||1;
+  aggSorted.slice(0,5).forEach(([type,sc])=>{
+    const pct=Math.round((sc-mn)/rng*100);
+    const votes=typeVotes[type]||0;
     const row=document.createElement('div');row.className='vote-bar-row';
-    row.innerHTML=`<span class="vote-bar-type">${type}</span><div class="vote-bar-track"><div class="vote-bar-fill" style="width:0%;background:var(--accent)"></div></div><span class="vote-bar-count">${votes}票</span>`;
+    row.innerHTML=`<span class="vote-bar-type">${type}</span><div class="vote-bar-track"><div class="vote-bar-fill" style="width:0%;background:var(--accent)"></div></div><span class="vote-bar-count">${votes>0?votes+'票':'—'}</span>`;
     bars.appendChild(row);
-    setTimeout(()=>row.querySelector('.vote-bar-fill').style.width=Math.round(votes/maxV*100)+'%',120);
+    setTimeout(()=>row.querySelector('.vote-bar-fill').style.width=pct+'%',120);
   });
 }
 
 function renderResponsesList(responses){
   const list=document.getElementById('responses-list');
   if(responses.length===0){
-    list.innerHTML=`<div style="font-size:.76rem;color:var(--text-muted);padding:16px 0;">まだ診断が届いていません。リンクをシェアしてみましょう！</div>`;
+    list.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border2);border-radius:3px;padding:24px 20px;font-size:.76rem;color:var(--text-muted);line-height:1.8;text-align:center;"><div style="font-size:1.5rem;margin-bottom:8px;">📭</div>まだ診断が届いていません。<br>リンクをシェアしてみましょう！</div>`;
     return;
   }
   list.innerHTML='';
   responses.forEach(r=>{
     const el=document.createElement('div');el.className='response-item';
     const rel=r.reliability||3;const stars='★'.repeat(rel)+'☆'.repeat(5-rel);
+    const top3Html=(r.top3||[]).slice(0,3).map((t,i)=>{
+      const quadra=TI[t.code]?.quadra||'';
+      return `<span style="font-family:'Cormorant Garamond',serif;font-size:${i===0?'1rem':'.8rem'};color:${i===0?'var(--accent)':'var(--text-muted)'};margin-right:4px;">${t.code}<span style="font-size:.6rem;color:var(--text-muted);margin-left:2px;">${i===0?'('+t.displayScore+'pt)':''}</span></span>`;
+    }).join('<span style="color:var(--border2);margin-right:4px;">›</span>');
+    // IM top 3
+    const imTop3=r.imScores?Object.entries(r.imScores).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`<span style="font-size:.67rem;background:var(--bg2);border:1px solid var(--border);padding:1px 6px;border-radius:20px;color:var(--text-dim);">${k}</span>`).join(''):'';
+    const quadraStr=TI[r.topType]?.quadra?`<span class="type-quadra-badge quadra-${TI[r.topType].quadra}" style="font-size:.58rem;">${TI[r.topType].quadra}</span>`:'';
     el.innerHTML=`
       <div class="response-item-header">
         <div class="response-evaluator">${r.evaluatorName||'匿名'}</div>
         <div class="response-date">${r.createdAt?new Date(r.createdAt).toLocaleDateString('ja-JP'):'—'}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;">
-        <span class="response-type-badge">${r.topType}</span>
-        <span class="response-meta">${TI[r.topType]?.alias||''}</span>
-        <span style="font-size:.67rem;color:var(--accent3);">${stars}</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 4px;">
+        ${top3Html}
+        ${quadraStr}
       </div>
-      <div class="response-meta" style="margin-top:5px;">${r.relation||'—'} · ${r.period||'—'}</div>`;
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px;">${imTop3}</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="response-meta">${r.relation||'—'} · ${r.period||'—'}</span>
+        <span style="font-size:.67rem;color:var(--accent3);letter-spacing:.05em;">${stars}</span>
+      </div>`;
     list.appendChild(el);
   });
 }
@@ -1299,15 +1416,6 @@ async function copyMyLink(){
   const url=document.getElementById('my-link-url').textContent;
   await navigator.clipboard.writeText(url);
   showToast('リンクをコピーしました！');
-}
-function shareMyLinkToTwitter(){
-  const url=encodeURIComponent(document.getElementById('my-link-url').textContent);
-  const text=encodeURIComponent('私のソシオニクスタイプを診断してください🔍 #SocioLens #ソシオニクス');
-  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`,'_blank');
-}
-function shareMyLinkToLine(){
-  const url=encodeURIComponent(document.getElementById('my-link-url').textContent);
-  window.open(`https://line.me/R/msg/text/?${url}`,'_blank');
 }
 
 // ══════════════════════════════════════════════
@@ -1417,29 +1525,30 @@ function generateShareCard(topType, imScores, totalRespondents){
 function shareToTwitter(){
   const topType=state.lastResultData?.topType||'—';
   const name=state.targetName||'—';
-  const text=encodeURIComponent(`${name}さんのソシオニクスタイプは「${topType}（${TI[topType]?.alias||''}）」という診断結果が出ました！ #SocioLens #ソシオニクス`);
+  const text=encodeURIComponent(`${name}さんのソシオニクスタイプを診断したら「${topType}（${TI[topType]?.alias||''}）」でした！ #SocioLens #ソシオニクス`);
   const url=encodeURIComponent(window.location.href.split('?')[0]);
+  window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`,'_blank');
+}
+function shareMyLinkToTwitter(){
+  const url=encodeURIComponent(document.getElementById('my-link-url').textContent);
+  const text=encodeURIComponent('私のソシオニクスタイプを診断してください🔍 #SocioLens #ソシオニクス');
   window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`,'_blank');
 }
 function shareToLine(){
   const topType=state.lastResultData?.topType||'—';
   const name=state.targetName||'—';
-  const text=encodeURIComponent(`${name}さんのソシオニクス診断：${topType}（${TI[topType]?.alias||''}）\n#SocioLens`);
+  const text=encodeURIComponent(`${name}さんのソシオニクス診断結果：${topType}（${TI[topType]?.alias||''}）\nあなたも試してみてください #SocioLens`);
   window.open(`https://line.me/R/msg/text/?${text}`,'_blank');
 }
-function downloadShareCard(){
-  const canvas=document.getElementById('ogp-canvas');
-  const a=document.createElement('a');
-  a.download=`sociolens_${state.targetName||'result'}.png`;
-  a.href=canvas.toDataURL('image/png');
-  a.click();
-  showToast('画像を保存しました');
+function shareMyLinkToLine(){
+  const url=encodeURIComponent(document.getElementById('my-link-url').textContent);
+  window.open(`https://line.me/R/msg/text/?${url}`,'_blank');
 }
 
 // ══════════════════════════════════════════════
 //  MISC
 // ══════════════════════════════════════════════
-function retakeQuiz(){state.currentQ=0;state.answers=new Array(50).fill(null);state.sharedLinkId=null;state.sharedLinkOwnerUid=null;buildQuestionOrder();renderQuestion();showScreen('screen-quiz');}
+function retakeQuiz(){state.currentQ=0;state.answers=new Array(TOTAL_Q).fill(null);state.sharedLinkId=null;state.sharedLinkOwnerUid=null;buildQuestionOrder();renderQuestion();showScreen('screen-quiz');}
 
 // Check URL on load (for shared links, handled in onAuthStateChanged)
 window.addEventListener('load',()=>{
