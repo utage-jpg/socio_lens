@@ -1,0 +1,36 @@
+{
+  "positionWeights": {
+    "pos1": 1.5,
+    "pos2": 1.3,
+    "pos3": 0.8,
+    "pos4": 0.6,
+    "pos5": 0.9,
+    "pos6": 0.7,
+    "pos7": 0.4,
+    "pos8": 0.5
+  },
+  "quadraMap": {
+    "Alpha": ["ILE", "SEI", "ESE", "LII"],
+    "Beta":  ["EIE", "LSI", "SLE", "IEI"],
+    "Gamma": ["SEE", "ILI", "LIE", "ESI"],
+    "Delta": ["LSE", "EII", "IEE", "SLI"]
+  },
+  "typeModelA": {
+    "ILE": { "pos1":"Ne", "pos2":"Ti", "pos3":"Se", "pos4":"Fi", "pos5":"Si", "pos6":"Fe", "pos7":"Ni", "pos8":"Te" },
+    "SEI": { "pos1":"Si", "pos2":"Fe", "pos3":"Ni", "pos4":"Te", "pos5":"Ne", "pos6":"Ti", "pos7":"Se", "pos8":"Fi" },
+    "ESE": { "pos1":"Fe", "pos2":"Si", "pos3":"Ti", "pos4":"Ne", "pos5":"Fi", "pos6":"Ni", "pos7":"Te", "pos8":"Se" },
+    "LII": { "pos1":"Ti", "pos2":"Ne", "pos3":"Fi", "pos4":"Se", "pos5":"Te", "pos6":"Se", "pos7":"Fe", "pos8":"Si" },
+    "EIE": { "pos1":"Fe", "pos2":"Ni", "pos3":"Si", "pos4":"Te", "pos5":"Fi", "pos6":"Se", "pos7":"Ti", "pos8":"Ne" },
+    "LSI": { "pos1":"Ti", "pos2":"Se", "pos3":"Ne", "pos4":"Fi", "pos5":"Te", "pos6":"Ni", "pos7":"Fe", "pos8":"Si" },
+    "SLE": { "pos1":"Se", "pos2":"Ti", "pos3":"Fe", "pos4":"Ni", "pos5":"Si", "pos6":"Fe", "pos7":"Ne", "pos8":"Fi" },
+    "IEI": { "pos1":"Ni", "pos2":"Fe", "pos3":"Ti", "pos4":"Se", "pos5":"Ne", "pos6":"Si", "pos7":"Te", "pos8":"Fi" },
+    "SEE": { "pos1":"Se", "pos2":"Fi", "pos3":"Te", "pos4":"Ni", "pos5":"Si", "pos6":"Fe", "pos7":"Ne", "pos8":"Ti" },
+    "ILI": { "pos1":"Ni", "pos2":"Te", "pos3":"Fi", "pos4":"Se", "pos5":"Ne", "pos6":"Si", "pos7":"Fe", "pos8":"Ti" },
+    "LIE": { "pos1":"Te", "pos2":"Ni", "pos3":"Si", "pos4":"Fe", "pos5":"Ti", "pos6":"Se", "pos7":"Fi", "pos8":"Ne" },
+    "ESI": { "pos1":"Fi", "pos2":"Se", "pos3":"Ne", "pos4":"Ti", "pos5":"Fe", "pos6":"Ni", "pos7":"Si", "pos8":"Te" },
+    "LSE": { "pos1":"Te", "pos2":"Si", "pos3":"Ni", "pos4":"Fe", "pos5":"Ti", "pos6":"Ne", "pos7":"Fi", "pos8":"Se" },
+    "EII": { "pos1":"Fi", "pos2":"Ne", "pos3":"Se", "pos4":"Ti", "pos5":"Fe", "pos6":"Si", "pos7":"Te", "pos8":"Ni" },
+    "IEE": { "pos1":"Ne", "pos2":"Fi", "pos3":"Ti", "pos4":"Se", "pos5":"Ni", "pos6":"Te", "pos7":"Si", "pos8":"Fe" },
+    "SLI": { "pos1":"Si", "pos2":"Te", "pos3":"Fe", "pos4":"Ni", "pos5":"Se", "pos6":"Ti", "pos7":"Fi", "pos8":"Ne" }
+  }
+}
