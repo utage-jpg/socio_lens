@@ -354,16 +354,13 @@ body{font-family:'Noto Serif JP',serif;background:var(--bg);color:var(--text);mi
       </p>
     </div>
 
-    <div class="top-actions animate-in" style="animation-delay:.08s">
-      <div class="action-card primary" onclick="handleStartDiagnosis()">
-        <div class="action-card-icon">🔍</div>
-        <div class="action-card-title">診断リンクを発行する</div>
-        <div class="action-card-desc">URLを友人に共有して<br>あなたのタイプを診断してもらう</div>
-      </div>
-      <div class="action-card" onclick="handleMyPage()">
-        <div class="action-card-icon">📊</div>
-        <div class="action-card-title">マイページ</div>
-        <div class="action-card-desc">集まった診断結果を確認<br>信頼度スコアが上がる</div>
+    <div class="animate-in" style="animation-delay:.08s;margin-bottom:14px;">
+      <div class="action-card primary" onclick="handleMyPage()" style="text-align:left;display:flex;align-items:center;gap:18px;padding:22px 26px;">
+        <div class="action-card-icon" style="font-size:2rem;flex-shrink:0;">📊</div>
+        <div>
+          <div class="action-card-title" style="font-size:1.05rem;">マイページ・診断リンクを発行する</div>
+          <div class="action-card-desc" style="margin-top:4px;">リンクを友人にシェアしてあなたのタイプを診断してもらう。集まった結果をマイページで確認。</div>
+        </div>
       </div>
     </div>
 
@@ -576,7 +573,10 @@ body{font-family:'Noto Serif JP',serif;background:var(--bg);color:var(--text);mi
     </div>
     <div class="mypage-header animate-in">
       <div class="mypage-title">マイページ</div>
-      <div class="mypage-subtitle" id="mypage-username">—</div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div class="mypage-subtitle" id="mypage-username">—</div>
+        <button class="btn btn-ghost" style="font-size:.67rem;padding:4px 10px;" onclick="openNicknameEdit()">✏️ ニックネーム変更</button>
+      </div>
     </div>
 
     <!-- Aggregated Result -->
@@ -614,8 +614,8 @@ body{font-family:'Noto Serif JP',serif;background:var(--bg);color:var(--text);mi
 
     <!-- Tabs: Responses -->
     <div class="mypage-tabs animate-in" style="animation-delay:.16s">
-      <div class="mypage-tab active" onclick="switchMyPageTab('responses')">届いた診断</div>
-      <div class="mypage-tab" onclick="switchMyPageTab('given')">自分が回答した診断</div>
+      <div class="mypage-tab active" onclick="switchMyPageTab('responses')">届いた診断 <span id="tab-responses-count" style="font-size:.6rem;background:var(--accent);color:#fff;border-radius:20px;padding:1px 6px;margin-left:4px;display:none;"></span></div>
+      <div class="mypage-tab" onclick="switchMyPageTab('given')">自分が回答した診断 <span id="tab-given-count" style="font-size:.6rem;background:var(--bg2);color:var(--text-muted);border-radius:20px;padding:1px 6px;margin-left:4px;display:none;"></span></div>
     </div>
 
     <div id="tab-responses" class="animate-in" style="animation-delay:.2s;">
@@ -642,6 +642,20 @@ body{font-family:'Noto Serif JP',serif;background:var(--bg);color:var(--text);mi
       Googleでログイン
     </button>
     <div style="text-align:center;margin-top:16px;font-size:.7rem;color:var(--text-muted);">ログインはマイページ・リンク発行にのみ必要です。<br>診断（回答）はログインなしで可能です。</div>
+  </div>
+</div>
+
+<!-- ══════════ NICKNAME MODAL ══════════ -->
+<div id="nickname-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">ニックネームを設定</div>
+    <div class="modal-desc">診断リンクを共有したときに表示される名前です。メールアドレスは相手に見えません。後からマイページで変更できます。</div>
+    <div class="form-group">
+      <label class="form-label">ニックネーム <span style="color:var(--accent)">*</span></label>
+      <input type="text" id="nickname-input" class="form-input" placeholder="例：さくら、田中K、など" maxlength="20">
+      <div class="form-hint">20文字以内。診断依頼バナーに「〇〇さんからの診断依頼」として表示されます。</div>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="saveNickname()">設定して続ける →</button>
   </div>
 </div>
 
@@ -794,18 +808,72 @@ function openLoginModal(){document.getElementById('login-modal').classList.add('
 function closeLoginModal(){document.getElementById('login-modal').classList.remove('active');}
 async function loginWithGoogle(){
   try{
-    const{auth,provider,signInWithPopup,db,doc,setDoc}=window._fb;
+    const{auth,provider,signInWithPopup,db,doc,setDoc,getDoc}=window._fb;
     const result=await signInWithPopup(auth,provider);
     const user=result.user;
     // ensure user doc exists
     const uRef=doc(db,'users',user.uid);
-    const uSnap=await getDoc(uRef);
+    const uSnap=await window._fb.getDoc(uRef);
     if(!uSnap.exists()){
-      await setDoc(uRef,{uid:user.uid,displayName:user.displayName,email:user.email,photoURL:user.photoURL,createdAt:window._fb.serverTimestamp(),responses:[]});
+      // New user: create doc, prompt for nickname
+      await setDoc(uRef,{uid:user.uid,displayName:user.displayName,email:user.email,photoURL:user.photoURL,nickname:'',createdAt:window._fb.serverTimestamp(),responses:[]});
+      closeLoginModal();
+      // Prompt nickname
+      window._afterNickname=()=>showMyPage();
+      document.getElementById('nickname-input').value='';
+      document.getElementById('nickname-modal').classList.add('active');
+    } else {
+      const userData=uSnap.data();
+      // If no nickname set yet, prompt
+      if(!userData.nickname){
+        closeLoginModal();
+        window._afterNickname=()=>showMyPage();
+        document.getElementById('nickname-input').value='';
+        document.getElementById('nickname-modal').classList.add('active');
+      } else {
+        closeLoginModal();
+        showToast('ログインしました');
+      }
     }
-    closeLoginModal();
-    showToast('ログインしました');
   }catch(e){console.error(e);showToast('ログインに失敗しました');}
+}
+
+async function saveNickname(){
+  const nick=document.getElementById('nickname-input').value.trim();
+  if(!nick){alert('ニックネームを入力してください');return;}
+  const user=window._currentUser;
+  if(!user)return;
+  try{
+    const{db,doc,updateDoc,setDoc}=window._fb;
+    const uRef=doc(db,'users',user.uid);
+    try{await updateDoc(uRef,{nickname:nick});}
+    catch(e){await setDoc(uRef,{nickname:nick},{merge:true});}
+    // Also update link doc ownerName if exists
+    const linkRef=doc(db,'links',user.uid);
+    const lSnap=await window._fb.getDoc(linkRef);
+    if(lSnap.exists()){
+      try{await updateDoc(linkRef,{ownerName:nick});}catch(e2){}
+    }
+    document.getElementById('nickname-modal').classList.remove('active');
+    showToast(`ニックネームを「${nick}」に設定しました`);
+    if(window._afterNickname){window._afterNickname();window._afterNickname=null;}
+  }catch(e){console.error(e);showToast('保存に失敗しました');}
+}
+
+function openNicknameEdit(){
+  const user=window._currentUser;if(!user)return;
+  const{db,doc}=window._fb;
+  window._fb.getDoc(doc(db,'users',user.uid)).then(snap=>{
+    document.getElementById('nickname-input').value=snap.exists()?snap.data().nickname||'':'';
+  });
+  window._afterNickname=async()=>{
+    const{db,doc}=window._fb;
+    const snap=await window._fb.getDoc(doc(db,'users',user.uid));
+    const nick=snap.exists()?snap.data().nickname||'':user.displayName||user.email;
+    document.getElementById('mypage-username').textContent=`${nick} のページ`;
+    await loadMyPageData(user);
+  };
+  document.getElementById('nickname-modal').classList.add('active');
 }
 async function logoutUser(){
   const{auth,signOut}=window._fb;
@@ -818,10 +886,6 @@ async function getDoc(ref){return window._fb.getDoc(ref);}
 // ══════════════════════════════════════════════
 //  TOP PAGE HANDLERS
 // ══════════════════════════════════════════════
-function handleStartDiagnosis(){
-  if(!window._currentUser){openLoginModal();return;}
-  showMyPage();
-}
 function handleMyPage(){
   if(!window._currentUser){openLoginModal();return;}
   showMyPage();
@@ -1024,9 +1088,10 @@ async function showResult(){
 // ══════════════════════════════════════════════
 async function saveResponseToOwner(topType, sorted, imScores, reliability){
   try{
-    const{db,doc,updateDoc,arrayUnion,collection,addDoc,serverTimestamp}=window._fb;
+    const{db,doc,updateDoc,arrayUnion,collection,addDoc,serverTimestamp,setDoc}=window._fb;
     const responseData={
       evaluatorName:state.evaluatorName||'匿名',
+      evaluatorUid:window._currentUser?window._currentUser.uid:null,
       relation:state.relation,
       period:state.period,
       topType,
@@ -1034,13 +1099,31 @@ async function saveResponseToOwner(topType, sorted, imScores, reliability){
       imScores,
       reliability,
       createdAt:new Date().toISOString(),
+      targetUid:state.sharedLinkOwnerUid,
+      targetName:state.targetName,
     };
     // Add to owner's subcollection
     const responsesRef=collection(db,`users/${state.sharedLinkOwnerUid}/responses`);
     await addDoc(responsesRef,responseData);
     // Also update link doc's respondentCount
     const linkRef=doc(db,'links',state.sharedLinkId);
-    await updateDoc(linkRef,{respondentCount:window._fb.arrayUnion(state.evaluatorName||'匿名')});
+    try{await updateDoc(linkRef,{respondentCount:arrayUnion(state.evaluatorName||'匿名')});}catch(e2){}
+
+    // Phase 3: If evaluator is logged in, save to their "given" subcollection
+    if(window._currentUser){
+      const givenRef=collection(db,`users/${window._currentUser.uid}/given`);
+      await addDoc(givenRef,{
+        targetName:state.targetName,
+        targetUid:state.sharedLinkOwnerUid,
+        topType,
+        top3:sorted.slice(0,3).map(t=>({code:t.code,score:t.displayScore})),
+        imScores,
+        reliability,
+        relation:state.relation,
+        period:state.period,
+        createdAt:new Date().toISOString(),
+      });
+    }
   }catch(e){console.error('Save error',e);}
 }
 
@@ -1050,10 +1133,15 @@ async function saveResponseToOwner(topType, sorted, imScores, reliability){
 async function showMyPage(){
   const user=window._currentUser;
   if(!user){openLoginModal();return;}
-  document.getElementById('mypage-username').textContent=`${user.displayName||user.email} のページ`;
+
+  // Get nickname from Firestore
+  const{db,doc}=window._fb;
+  const uSnap=await window._fb.getDoc(doc(db,'users',user.uid));
+  const nick=(uSnap.exists()&&uSnap.data().nickname)||user.displayName||user.email;
+  document.getElementById('mypage-username').textContent=`${nick} のページ`;
 
   // Generate/get link
-  const linkUrl=await getOrCreateMyLink(user);
+  const linkUrl=await getOrCreateMyLink(user, nick);
   document.getElementById('my-link-url').textContent=linkUrl;
 
   // Load responses
@@ -1062,12 +1150,13 @@ async function showMyPage(){
   showScreen('screen-mypage');
 }
 
-async function getOrCreateMyLink(user){
-  const{db,doc,getDoc,setDoc,serverTimestamp}=window._fb;
+async function getOrCreateMyLink(user, nickname){
+  const{db,doc,setDoc,serverTimestamp}=window._fb;
   const linkRef=doc(db,'links',user.uid);
   const snap=await window._fb.getDoc(linkRef);
+  const ownerName=nickname||user.displayName||'—';
   if(!snap.exists()){
-    await setDoc(linkRef,{ownerUid:user.uid,ownerName:user.displayName||'—',createdAt:serverTimestamp(),respondentCount:[]});
+    await setDoc(linkRef,{ownerUid:user.uid,ownerName,createdAt:serverTimestamp(),respondentCount:[]});
   }
   const base=window.location.origin+window.location.pathname;
   return `${base}?link=${user.uid}`;
@@ -1075,22 +1164,60 @@ async function getOrCreateMyLink(user){
 
 async function loadMyPageData(user){
   try{
-    const{db,collection,getDocs,query,where}=window._fb;
+    const{db,collection,getDocs}=window._fb;
+    // Load received responses
     const responsesRef=window._fb.collection(db,`users/${user.uid}/responses`);
     const snap=await window._fb.getDocs(responsesRef);
     const responses=[];
     snap.forEach(d=>responses.push({id:d.id,...d.data()}));
-
-    // Sort by date
     responses.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
-
-    // Aggregate
     renderAggregation(responses);
     renderResponsesList(responses);
 
-    // Load given (responses I gave to others) — skip for now as we don't track by evaluator uid
-    document.getElementById('given-list').innerHTML=`<div style="font-size:.76rem;color:var(--text-muted);padding:16px 0;">ログイン状態での回答履歴はPhase 3で実装予定です。</div>`;
+    // Update tab count badge
+    const rcBadge=document.getElementById('tab-responses-count');
+    if(responses.length>0){rcBadge.textContent=responses.length;rcBadge.style.display='inline';}
+
+    // Phase 3: Load given history (responses I gave)
+    const givenRef=window._fb.collection(db,`users/${user.uid}/given`);
+    const givenSnap=await window._fb.getDocs(givenRef);
+    const given=[];
+    givenSnap.forEach(d=>given.push({id:d.id,...d.data()}));
+    given.sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    renderGivenList(given);
+
+    // Update given tab badge
+    const gcBadge=document.getElementById('tab-given-count');
+    if(given.length>0){gcBadge.textContent=given.length;gcBadge.style.display='inline';}
   }catch(e){console.error(e);}
+}
+
+function renderGivenList(given){
+  const list=document.getElementById('given-list');
+  if(given.length===0){
+    list.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border2);border-radius:3px;padding:24px 20px;font-size:.76rem;color:var(--text-muted);line-height:1.8;text-align:center;"><div style="font-size:1.5rem;margin-bottom:8px;">🔍</div>診断リンク経由で誰かを診断すると、<br>ここに履歴が記録されます。<br><span style="font-size:.68rem;color:var(--text-muted);margin-top:4px;display:block;">※ログイン状態での回答が対象です</span></div>`;
+    return;
+  }
+  list.innerHTML='';
+  given.forEach(r=>{
+    const el=document.createElement('div');el.className='response-item';
+    const rel=r.reliability||3;const stars='★'.repeat(rel)+'☆'.repeat(5-rel);
+    const top3Html=(r.top3||[]).slice(0,3).map((t,i)=>`<span style="font-family:'Cormorant Garamond',serif;font-size:${i===0?'.95rem':'.78rem'};color:${i===0?'var(--accent)':'var(--text-muted)'};margin-right:6px;">${t.code}${i===0?'':''}</span>`).join('');
+    el.innerHTML=`
+      <div class="response-item-header">
+        <div class="response-evaluator" style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:.64rem;color:var(--text-muted);border:1px solid var(--border2);padding:1px 6px;border-radius:20px;">診断した相手</span>
+          <span>${r.targetName||'—'}</span>
+        </div>
+        <div class="response-date">${r.createdAt?new Date(r.createdAt).toLocaleDateString('ja-JP'):'—'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;margin:6px 0 2px;">${top3Html}</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="response-meta">${r.relation||'—'} · ${r.period||'—'}</span>
+        <span style="font-size:.67rem;color:var(--accent3);">${stars}</span>
+      </div>`;
+    list.appendChild(el);
+  });
 }
 
 function renderAggregation(responses){
