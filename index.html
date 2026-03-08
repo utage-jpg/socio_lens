@@ -1003,7 +1003,8 @@ function selectAnswer(val){
   // Auto advance after short delay
   if(state.currentQ===TOTAL_Q-1){
     _autoAdvanceLock=true;
-    setTimeout(()=>{_autoAdvanceLock=false;showResult();},320);
+    // NOTE: _autoAdvanceLock は showResult() 完了後に解除（二重呼び出し防止）
+    setTimeout(()=>{showResult().finally(()=>{_autoAdvanceLock=false;});},320);
     return;
   }
   _autoAdvanceLock=true;
@@ -1181,6 +1182,9 @@ function computeScores(){
 //  SHOW RESULT
 // ══════════════════════════════════════════════
 async function showResult(){
+  // ── 二重実行ガード ──
+  if(state._resultShown) return;
+  state._resultShown=true;
   const scores=computeScores();
   const{imScores,quadraScores,allSorted,topType,topQuadra,egoFunctions,reliability}=scores;
 
@@ -1263,6 +1267,9 @@ async function showResult(){
 //  FIREBASE: SAVE RESPONSE
 // ══════════════════════════════════════════════
 async function saveResponseToOwner(topType, topQuadra, allSorted, imScores, quadraScores, reliability){
+  // ── 二重保存ガード ──
+  if(state._savedToFirestore){console.warn('saveResponseToOwner: already saved, skipping');return;}
+  state._savedToFirestore=true;
   try{
     const{db,doc,updateDoc,arrayUnion,collection,addDoc,setDoc}=window._fb;
     // 同クアドラ内TOP3を保存
@@ -1663,7 +1670,7 @@ function shareMyLinkToLine(){
 // ══════════════════════════════════════════════
 //  MISC
 // ══════════════════════════════════════════════
-function retakeQuiz(){state.currentQ=0;state.answers=new Array(TOTAL_Q).fill(null);state.sharedLinkId=null;state.sharedLinkOwnerUid=null;buildQuestionOrder();renderQuestion();showScreen('screen-quiz');}
+function retakeQuiz(){state.currentQ=0;state.answers=new Array(TOTAL_Q).fill(null);state.sharedLinkId=null;state.sharedLinkOwnerUid=null;state._resultShown=false;state._savedToFirestore=false;buildQuestionOrder();renderQuestion();showScreen('screen-quiz');}
 
 // Check URL on load (for shared links, handled in onAuthStateChanged)
 window.addEventListener('load',()=>{
